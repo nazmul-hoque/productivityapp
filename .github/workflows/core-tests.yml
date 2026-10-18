@@ -1,0 +1,14 @@
+name: Core tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: swift:6.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run TaskCore tests
+        run: swift test --package-path Packages/TaskCore
