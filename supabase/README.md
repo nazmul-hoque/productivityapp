@@ -68,8 +68,6 @@ The App Store requires apps with sign-up to let people delete their account in t
 records and their Supabase Auth user, ending their sessions everywhere. Because the project's users
 are shared, this also removes the sign-in for any other app on the project, along with anything that
 app stores against the user with `on delete cascade`. To-dos on the device stay there, unsynced.
-List those apps in `AppConfig.appsSharingAccounts` so the Delete Account screen names them in its
-warning.
 
 ## Tests
 

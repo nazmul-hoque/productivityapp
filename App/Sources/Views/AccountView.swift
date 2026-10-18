@@ -162,8 +162,7 @@ struct AccountView: View {
                     .foregroundStyle(.red)
             }
         } footer: {
-            Text("Deletes your account and the to-dos synced to it, on all your devices. This can't be undone."
-                 + sharedAccountWarning)
+            Text("Deletes your account and the to-dos synced to it, on all your devices. This can't be undone.")
         }
         .alert("Delete your account?", isPresented: $confirmingDelete) {
             Button("Delete Account", role: .destructive) {
@@ -171,8 +170,7 @@ struct AccountView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your account and everything synced to it will be permanently deleted. Other devices will be signed out. The to-dos on this device stay here, no longer synced."
-                 + sharedAccountWarning)
+            Text("Your account and everything synced to it will be permanently deleted. Other devices will be signed out. The to-dos on this device stay here, no longer synced.")
         }
         .confirmationDialog("Sign out on this device?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) { Task { await sync.signOut() } }
@@ -192,14 +190,6 @@ struct AccountView: View {
     }
 
     // MARK: - Helpers
-
-    /// The account is shared with other apps on the same Supabase project; deleting it there too.
-    private var sharedAccountWarning: String {
-        let apps = AppConfig.appsSharingAccounts
-        guard !apps.isEmpty else { return "" }
-        let names = apps.formatted(.list(type: .and))
-        return "\n\nYou also use this account to sign in to \(names). It will be deleted there too, along with what \(apps.count == 1 ? "that app keeps" : "those apps keep") for it."
-    }
 
     private var looksLikeEmail: Bool {
         let parts = email.trimmingCharacters(in: .whitespaces).split(separator: "@")
