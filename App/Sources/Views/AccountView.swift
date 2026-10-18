@@ -28,6 +28,15 @@ struct AccountView: View {
                 case .signedIn(let email):
                     signedIn(email)
                 }
+                Section {
+                    NavigationLink {
+                        DataView()
+                    } label: {
+                        Label("Import & Export", systemImage: "square.and.arrow.up.on.square")
+                    }
+                } header: {
+                    Text("Your data")
+                }
             }
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)

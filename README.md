@@ -14,6 +14,7 @@ Packages/TaskCore/   Swift package with all the app's logic, no UI (tested; also
   Repeat/            RepeatRule + RepeatEngine (fixed / after completion, complete early, reschedule)
   Ordering/          FractionalIndex: sync-friendly ordering keys for drag-and-drop
   Store/             TaskDatabase: the data plus every operation on it, as a plain value
+  Exchange/          Export (JSON backup, CSV) and import (Daybook, Todoist, TickTick, Google Tasks, Reminders)
 Packages/TaskCore/Sources/TaskStore/
                      SQLite persistence (GRDB): schema, row mapping, diff-based saves
   Sync/              Change tracking, field-level merge, sync engine, Supabase transport
@@ -120,7 +121,11 @@ Done:
 To turn it on, set up a Supabase project (`supabase/README.md`) and fill in
 `App/Sources/Store/AppConfig.swift`. Without it the app works as before, with no account.
 
-Next:
-- Sign in with Apple and Google
-- Background refresh, so a device that hasn't been opened in a while is current when it is
-- Import (Things, Todoist, TickTick, Google Tasks, Reminders) and export (JSON, CSV)
+- Background refresh: iOS wakes the app now and then to sync, so reminders for to-dos added on
+  other devices are scheduled and the widget is current before the app is opened
+- Import & Export (*Account → Import & Export*): a full JSON backup and a CSV of to-dos; import
+  from Daybook backups, Todoist project CSVs, TickTick backups, Google Takeout's Tasks.json and
+  Apple Reminders, previewed before anything changes. Areas and tags are matched by name, and
+  importing the same backup twice adds nothing. Things doesn't export its data, so it isn't supported
+
+Phase 2 is complete. Later: Sign in with Apple and Google (needs the paid Apple Developer Program).

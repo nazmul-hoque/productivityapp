@@ -311,6 +311,7 @@ public enum RemindersImport {
                 if var rule = item.repeatRule {
                     rule.anchor = day
                     rule.reminder = item.time
+                    if case .yearly = rule.frequency { rule.frequency = .yearly(month: day.month, day: day.day) }
                     todo.repetition = Repetition(rule: rule, occurrence: day)
                 }
             }

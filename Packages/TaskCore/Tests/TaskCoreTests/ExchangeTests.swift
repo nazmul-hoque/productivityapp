@@ -286,13 +286,16 @@ struct RemindersImportTests {
         let items = [
             ReminderItem(title: "Call mum", listName: "Family", day: day("2026-10-15"), time: TimeOfDay(hour: 18)),
             ReminderItem(title: "Bins", listName: "Family", day: day("2026-10-16"), repeatRule: rule),
+            ReminderItem(title: "Birthday", listName: "Family", day: day("2026-12-03"),
+                         repeatRule: RepeatRule(frequency: .yearly(month: 1, day: 1), anchor: day("2000-01-01"))),
             ReminderItem(title: "Read this", listName: "Reading", url: URL(string: "https://example.com")!),
             ReminderItem(title: "Done", listName: "Reading", isCompleted: true),
             ReminderItem(title: "  ", listName: "Reading"),
         ]
         let db = RemindersImport.database(from: items, today: day("2026-10-14"))
         #expect(Set(db.projects.values.map(\.title)) == ["Family", "Reading"])
-        #expect(db.todos.count == 4)
+        #expect(db.todos.count == 5)
+        #expect(db.todos.values.first { $0.title == "Birthday" }?.repetition?.rule.frequency == .yearly(month: 12, day: 3))
         let call = db.todos.values.first { $0.title == "Call mum" }!
         #expect(call.when == .on(day("2026-10-15")) && call.reminder == TimeOfDay(hour: 18))
         let bins = db.todos.values.first { $0.title == "Bins" }!
