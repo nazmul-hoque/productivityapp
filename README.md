@@ -73,6 +73,7 @@ Done:
 - Quick add with natural-language parsing and a live preview
 - Repeating to-dos: daily/weekly/monthly/yearly, intervals, fixed schedule or after completion, end
   conditions; completing early; "just this one" vs "this and future" rescheduling
+- Repeating projects: completing one creates the next instance with the same headings and to-dos
 - Local reminders (offline) with Snooze 1 Hour / Tomorrow / Complete buttons on the notification,
   drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
   convert to-do → project, Quick Find search, sample "Get to know the app" project
@@ -83,5 +84,4 @@ Done:
   Upcoming day) to add a to-do right there
 
 Next:
-- Repeating projects
 - Lock screen widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass

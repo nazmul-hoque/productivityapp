@@ -34,17 +34,23 @@ enum Rows {
 
     static func upsert(_ project: Project, in db: Database) throws {
         let start = StartColumns(project.when)
+        let rule = try project.repetition.map { String(decoding: try encoder.encode($0.rule), as: UTF8.self) }
         try db.execute(sql: """
-            INSERT INTO project (id, area_id, title, notes, start_bucket, start_date, deadline, status, sort_key,
+            INSERT INTO project (id, area_id, title, notes, start_bucket, start_date, deadline,
+                                 repeat_series_id, repeat_rule, repeat_occurrence, repeat_index, status, sort_key,
                                  created_at, updated_at, completed_at, deleted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET area_id = excluded.area_id, title = excluded.title, notes = excluded.notes,
                 start_bucket = excluded.start_bucket, start_date = excluded.start_date, deadline = excluded.deadline,
+                repeat_series_id = excluded.repeat_series_id, repeat_rule = excluded.repeat_rule,
+                repeat_occurrence = excluded.repeat_occurrence, repeat_index = excluded.repeat_index,
                 status = excluded.status, sort_key = excluded.sort_key, updated_at = excluded.updated_at,
                 completed_at = excluded.completed_at, deleted_at = excluded.deleted_at
             """, arguments: [
                 project.id.uuidString, project.areaID?.uuidString, project.title, project.notes,
-                start.bucket, start.date, project.deadline?.description, project.status.rawValue, project.order,
+                start.bucket, start.date, project.deadline?.description,
+                project.repetition?.seriesID.uuidString, rule, project.repetition?.occurrence.description, project.repetition?.index,
+                project.status.rawValue, project.order,
                 ts(project.createdAt), ts(project.updatedAt), ts(project.completedAt), ts(project.deletedAt),
             ])
         try replaceTags(project.tagIDs, table: "project_tag", column: "project_id", owner: project.id, in: db)
@@ -132,7 +138,7 @@ enum Rows {
             let id = try uuid(row, "id")
             return Project(
                 id: id, title: row["title"], notes: row["notes"], areaID: try optionalUUID(row, "area_id"),
-                when: try when(row), deadline: try day(row, "deadline"), tagIDs: projectTags[id] ?? [],
+                when: try when(row), deadline: try day(row, "deadline"), repetition: try repetition(row), tagIDs: projectTags[id] ?? [],
                 status: try status(row), order: row["sort_key"], createdAt: date(row, "created_at")!,
                 updatedAt: date(row, "updated_at"), completedAt: date(row, "completed_at"), deletedAt: date(row, "deleted_at"))
         }

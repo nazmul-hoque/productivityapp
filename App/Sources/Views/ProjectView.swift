@@ -33,6 +33,11 @@ struct ProjectView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+                    if let repetition = project.repetition {
+                        Label(repetition.rule.summary, systemImage: "repeat")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if !project.notes.isEmpty {
                     Text(project.notes)
@@ -112,12 +117,20 @@ private struct HeadingHeader: View {
 struct ProjectEditorView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    private let original: Project
     @State private var draft: Project
     @State private var hasDeadline: Bool
+    @State private var repeatKind: RepeatKind
+    @State private var repeatInterval: Int
+    @State private var repeatMode: RepeatRule.Mode
 
     init(project: Project) {
+        original = project
         _draft = State(initialValue: project)
         _hasDeadline = State(initialValue: project.deadline != nil)
+        _repeatKind = State(initialValue: RepeatKind(project.repetition?.rule.frequency))
+        _repeatInterval = State(initialValue: project.repetition?.rule.interval ?? 1)
+        _repeatMode = State(initialValue: project.repetition?.rule.mode ?? .fixed)
     }
 
     var body: some View {
@@ -146,23 +159,65 @@ struct ProjectEditorView: View {
                         ForEach(store.db.sortedAreas) { Text($0.title).tag(UUID?.some($0.id)) }
                     }
                 }
+
+                Section {
+                    RepeatFields(kind: $repeatKind, interval: $repeatInterval, mode: $repeatMode)
+                    if repeatKind != .never {
+                        DatePicker("Starts", selection: startBinding, displayedComponents: .date)
+                    }
+                } footer: {
+                    if repeatKind != .never {
+                        Text("Completing the project creates the next one, with the same headings and to-dos.")
+                    }
+                }
             }
             .navigationTitle("Project")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: hasDeadline) { _, on in
                 if on && draft.deadline == nil { draft.deadline = store.today.adding(days: 7) }
             }
+            .onChange(of: repeatKind) { _, kind in
+                // A repeating project needs a start day to count from.
+                if kind != .never && !draft.when.isScheduled { draft.when = .on(store.today) }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         if !hasDeadline { draft.deadline = nil }
+                        draft.repetition = repetition()
                         store.perform { $0.updateProject(draft) }
                         dismiss()
                     }
                 }
             }
         }
+    }
+
+    private var startBinding: Binding<Date> {
+        Binding(
+            get: {
+                if case .on(let day) = draft.when { return day.date() }
+                return store.today.date()
+            },
+            set: { draft.when = .on(LocalDay($0)) }
+        )
+    }
+
+    /// The edited repeat settings, counting from the project's start day.
+    private func repetition() -> Repetition? {
+        guard repeatKind != .never, case .on(let start) = draft.when else { return nil }
+        if let existing = original.repetition,
+           RepeatKind(existing.rule.frequency) == repeatKind,
+           existing.rule.interval == repeatInterval,
+           existing.rule.mode == repeatMode,
+           existing.occurrence == start {
+            return existing  // Unchanged; keep custom details like specific weekdays.
+        }
+        let rule = RepeatRule(frequency: repeatKind.frequency(anchor: start), interval: repeatInterval,
+                              mode: repeatMode, anchor: start)
+        return Repetition(seriesID: original.repetition?.seriesID ?? UUID(), rule: rule, occurrence: start,
+                          index: original.repetition?.index ?? 1)
     }
 }
 

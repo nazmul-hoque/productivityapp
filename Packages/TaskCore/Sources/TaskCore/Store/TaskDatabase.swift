@@ -359,9 +359,11 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
         projects[project.id] = project
     }
 
-    /// Completes a project; its remaining open to-dos are marked completed too.
-    public mutating func completeProject(_ id: UUID, now: Date = Date()) {
-        guard var project = projects[id], project.status == .open else { return }
+    /// Completes a project; its remaining open to-dos are marked completed too. For a repeating
+    /// project this also creates the next instance, which is returned.
+    @discardableResult
+    public mutating func completeProject(_ id: UUID, now: Date = Date(), timeZone: TimeZone = .current) -> Project? {
+        guard var project = projects[id], project.status == .open else { return nil }
         project.status = .completed
         project.completedAt = now
         project.updatedAt = now
@@ -372,6 +374,37 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
                 $0.completedAt = now
             }
         }
+        return nextInstance(of: project, now: now, timeZone: timeZone)
+    }
+
+    /// The next instance of a repeating project: same title, notes, area, tags, headings and
+    /// to-dos (all open again, checklists cleared), starting on the next occurrence.
+    private mutating func nextInstance(of project: Project, now: Date, timeZone: TimeZone) -> Project? {
+        guard let repetition = project.repetition else { return nil }
+        // Only spawn once per series.
+        if projects.values.contains(where: { $0.repetition?.seriesID == repetition.seriesID && $0.status == .open && !$0.isDeleted }) {
+            return nil
+        }
+        let today = LocalDay(now, timeZone: timeZone)
+        let current = Occurrence(day: repetition.occurrence, index: repetition.index)
+        guard let next = RepeatEngine.next(after: current, of: repetition.rule, completedOn: today, today: today) else {
+            return nil
+        }
+        let instance = addProject(Project(
+            title: project.title, notes: project.notes, areaID: project.areaID, when: .on(next.day),
+            deadline: repetition.rule.deadlineOffset.map { next.day.adding(days: $0) },
+            repetition: Repetition(seriesID: repetition.seriesID, rule: repetition.rule, occurrence: next.day, index: next.index),
+            tagIDs: project.tagIDs, createdAt: now))
+        var headingIDs: [UUID: UUID] = [:]
+        for heading in headings.values.filter({ $0.projectID == project.id }).sorted(by: Self.byOrder) {
+            headingIDs[heading.id] = addHeading(heading.title, toProject: instance.id).id
+        }
+        for todo in todos.values.filter({ $0.projectID == project.id && !$0.isDeleted }).sorted(by: Self.byOrder) {
+            add(Todo(title: todo.title, notes: todo.notes, projectID: instance.id, headingID: todo.headingID.flatMap { headingIDs[$0] },
+                     when: .anytime, tagIDs: todo.tagIDs, checklist: todo.checklist.map { ChecklistItem(title: $0.title) },
+                     createdAt: now), today: today)
+        }
+        return instance
     }
 
     public mutating func trashProject(_ id: UUID, now: Date = Date()) {

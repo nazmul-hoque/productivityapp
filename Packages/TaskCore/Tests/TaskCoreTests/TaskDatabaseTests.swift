@@ -132,6 +132,39 @@ struct TaskDatabaseTests {
         #expect(c.when == .inbox && c.projectID == nil)
     }
 
+    @Test func completingARepeatingProjectCreatesTheNextOne() {
+        var db = TaskDatabase()
+        let area = db.addArea("Home")
+        let rule = RepeatRule(frequency: .monthly(.day(14)), anchor: today, deadlineOffset: 5)
+        let project = db.addProject(Project(title: "Pay bills", areaID: area.id, when: .on(today),
+                                            repetition: Repetition(rule: rule, occurrence: today)))
+        let heading = db.addHeading("Utilities", toProject: project.id)
+        db.add(Todo(title: "Power", projectID: project.id, headingID: heading.id, when: .anytime,
+                    checklist: [ChecklistItem(title: "Meter reading", isDone: true)]), today: today)
+        let water = db.add(Todo(title: "Water", projectID: project.id, headingID: heading.id, when: .anytime), today: today)
+        db.add(Todo(title: "Rent", projectID: project.id, when: .anytime), today: today)
+        let gone = db.add(Todo(title: "Old", projectID: project.id, when: .anytime), today: today)
+        db.complete(water.id, now: now, timeZone: utc)
+        db.trash(gone.id)
+
+        let next = db.completeProject(project.id, now: now, timeZone: utc)
+        #expect(db.projects[project.id]?.status == .completed)
+        #expect(next?.when == .on(day("2026-11-14")))
+        #expect(next?.deadline == day("2026-11-19"))
+        #expect(next?.areaID == area.id)
+        #expect(next?.repetition?.seriesID == project.repetition?.seriesID)
+        #expect(next?.repetition?.index == 2)
+
+        let sections = db.sections(ofProject: next!.id)
+        #expect(sections.map { $0.heading?.title } == [nil, "Utilities"])
+        #expect(sections.map { $0.todos.map(\.title) } == [["Rent"], ["Power", "Water"]])
+        #expect(sections[1].todos[0].checklist.map(\.isDone) == [false])
+
+        // The new instance waits for its start day; completing the old one again does nothing.
+        #expect(db.todos(in: .anytime, today: today).isEmpty)
+        #expect(db.completeProject(project.id, now: now, timeZone: utc) == nil)
+    }
+
     @Test func snoozeAnHour() {
         var db = TaskDatabase()
         let todo = db.add(Todo(title: "Call", when: .on(today), reminder: TimeOfDay(hour: 9)), today: today)

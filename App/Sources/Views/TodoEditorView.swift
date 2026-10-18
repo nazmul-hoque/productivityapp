@@ -19,30 +19,6 @@ struct TodoEditorView: View {
     @State private var newTag = ""
     @State private var askingRepeatScope = false
 
-    enum RepeatKind: String, CaseIterable, Identifiable {
-        case never, daily, weekly, monthly, yearly
-        var id: Self { self }
-
-        var unit: String {
-            switch self {
-            case .never, .daily: "day"
-            case .weekly: "week"
-            case .monthly: "month"
-            case .yearly: "year"
-            }
-        }
-
-        init(_ frequency: RepeatRule.Frequency?) {
-            switch frequency {
-            case nil: self = .never
-            case .daily: self = .daily
-            case .weekly: self = .weekly
-            case .monthly: self = .monthly
-            case .yearly: self = .yearly
-            }
-        }
-    }
-
     init(todo: Todo) {
         original = todo
         _draft = State(initialValue: todo)
@@ -173,17 +149,7 @@ struct TodoEditorView: View {
 
     private var repeatSection: some View {
         Section {
-            Picker("Repeat", selection: $repeatKind) {
-                ForEach(RepeatKind.allCases) { Text($0.rawValue.capitalized).tag($0) }
-            }
-            if repeatKind != .never {
-                Stepper(repeatInterval == 1 ? "Every \(repeatKind.unit)" : "Every \(repeatInterval) \(repeatKind.unit)s",
-                        value: $repeatInterval, in: 1...99)
-                Picker("Schedule", selection: $repeatMode) {
-                    Text("Fixed schedule").tag(RepeatRule.Mode.fixed)
-                    Text("After completion").tag(RepeatRule.Mode.afterCompletion)
-                }
-            }
+            RepeatFields(kind: $repeatKind, interval: $repeatInterval, mode: $repeatMode)
         }
     }
 
@@ -263,13 +229,7 @@ struct TodoEditorView: View {
             kept.rule.reminder = hasReminder ? reminderTime : nil
             return kept  // Unchanged; keep custom details like specific weekdays.
         }
-        let frequency: RepeatRule.Frequency = switch repeatKind {
-        case .never, .daily: .daily
-        case .weekly: .weekly([])
-        case .monthly: .monthly(.day(anchor.day))
-        case .yearly: .yearly(month: anchor.month, day: anchor.day)
-        }
-        let rule = RepeatRule(frequency: frequency, interval: repeatInterval, mode: repeatMode, anchor: anchor,
+        let rule = RepeatRule(frequency: repeatKind.frequency(anchor: anchor), interval: repeatInterval, mode: repeatMode, anchor: anchor,
                               reminder: hasReminder ? reminderTime : nil)
         return Repetition(seriesID: original.repetition?.seriesID ?? UUID(), rule: rule, occurrence: anchor)
     }

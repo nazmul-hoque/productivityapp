@@ -128,6 +128,8 @@ public struct Project: Identifiable, Hashable, Codable, Sendable {
     /// `.inbox` is treated as `.anytime` for projects.
     public var when: When
     public var deadline: LocalDay?
+    /// Completing a repeating project creates the next instance, with the same headings and to-dos.
+    public var repetition: Repetition?
     public var tagIDs: Set<UUID>
     public var status: ItemStatus
     public var order: String
@@ -143,6 +145,7 @@ public struct Project: Identifiable, Hashable, Codable, Sendable {
         areaID: UUID? = nil,
         when: When = .anytime,
         deadline: LocalDay? = nil,
+        repetition: Repetition? = nil,
         tagIDs: Set<UUID> = [],
         status: ItemStatus = .open,
         order: String = FractionalIndex.first,
@@ -157,6 +160,7 @@ public struct Project: Identifiable, Hashable, Codable, Sendable {
         self.areaID = areaID
         self.when = when
         self.deadline = deadline
+        self.repetition = repetition
         self.tagIDs = tagIDs
         self.status = status
         self.order = order

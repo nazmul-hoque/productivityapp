@@ -15,7 +15,10 @@ struct SQLiteStoreTests {
         let parent = db.tag(named: "Places")
         db.addProject(Project(title: "Someday project", when: .someday))
         let project = db.addProject(Project(title: "Launch", notes: "v1", areaID: work.id, when: .on(today),
-                                            deadline: today.adding(days: 30), tagIDs: [parent.id]))
+                                            deadline: today.adding(days: 30),
+                                            repetition: Repetition(rule: RepeatRule(frequency: .yearly(month: 10, day: 14), anchor: today),
+                                                                   occurrence: today, index: 3),
+                                            tagIDs: [parent.id]))
         let heading = db.addHeading("Prep", toProject: project.id)
         let rule = RepeatRule(frequency: .monthly(.weekday(ordinal: -1, .friday)), interval: 2, mode: .afterCompletion,
                               end: .count(5), anchor: today, deadlineOffset: 3, reminder: TimeOfDay(hour: 8, minute: 30))
@@ -85,7 +88,11 @@ struct SQLiteStoreTests {
     @Test func upgradeMarksStoresWithDataAsInitialized() throws {
         let withData = try DatabaseQueue()
         try Schema.migrator.migrate(withData, upTo: "v1")
-        try withData.write { try SQLiteStore.write(Changes(from: TaskDatabase(), to: sample()), in: $0) }
+        // A row as v1 stored it (today's row code needs later columns).
+        try withData.write {
+            try $0.execute(sql: "INSERT INTO area (id, title, sort_key, created_at, updated_at) VALUES (?, 'Work', 'V', 0, 0)",
+                           arguments: [UUID().uuidString])
+        }
         #expect(try SQLiteStore(writer: withData).isInitialized())
 
         let empty = try DatabaseQueue()

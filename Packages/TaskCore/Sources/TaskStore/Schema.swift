@@ -128,6 +128,14 @@ enum Schema {
                        OR EXISTS (SELECT 1 FROM area) OR EXISTS (SELECT 1 FROM tag);
                 """)
         }
+        migrator.registerMigration("v3: repeating projects") { db in
+            try db.execute(sql: """
+                ALTER TABLE project ADD COLUMN repeat_series_id TEXT;
+                ALTER TABLE project ADD COLUMN repeat_rule TEXT;           -- JSON-encoded RepeatRule
+                ALTER TABLE project ADD COLUMN repeat_occurrence TEXT;
+                ALTER TABLE project ADD COLUMN repeat_index INTEGER;
+                """)
+        }
         return migrator
     }
 }
