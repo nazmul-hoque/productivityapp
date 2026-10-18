@@ -140,7 +140,7 @@ final class AppStore {
 
     /// Suspends the database unless the app is back in the foreground by now (it may return
     /// while a background save is still running).
-    private func suspendDatabaseIfInBackground() {
+    func suspendDatabaseIfInBackground() {
         if UIApplication.shared.applicationState == .background {
             SQLiteStore.suspendAll()
         }

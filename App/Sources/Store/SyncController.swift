@@ -47,6 +47,7 @@ final class SyncController {
     @ObservationIgnored private var scheduled: Task<Void, Never>?
     @ObservationIgnored private var running: Task<Void, Never>?
     @ObservationIgnored private var syncAgain = false
+    @ObservationIgnored private var restoring: Task<Void, Never>?
 
     init(store: AppStore, config: SupabaseConfig? = AppConfig.supabase) {
         self.store = store
@@ -64,12 +65,17 @@ final class SyncController {
         account = .signedOut
         store.onSaved = { [weak self] in self?.syncSoon(after: .seconds(2)) }
 
-        Task {
+        restoring = Task {
             if let session = await auth.currentSession {
                 account = .signedIn(email: session.email)
                 syncSoon()
             }
         }
+    }
+
+    /// Returns once the saved session (if any) has been restored at launch.
+    func ready() async {
+        await restoring?.value
     }
 
     // MARK: - Signing in
@@ -166,6 +172,7 @@ final class SyncController {
     /// Signs out on this device. Its to-dos stay here; they stop syncing.
     func signOut() async {
         scheduled?.cancel()
+        BackgroundRefresh.cancel()
         await auth?.signOut()
         account = auth == nil ? .unavailable : .signedOut
         status = .idle
@@ -190,6 +197,24 @@ final class SyncController {
     }
 
     // MARK: - Syncing
+
+    var isSignedIn: Bool {
+        if case .signedIn = account { return true }
+        return false
+    }
+
+    /// A sync while the app is in the background (see `BackgroundRefresh`). Returns whether it
+    /// succeeded. New to-dos from other devices get their reminders scheduled and the widget
+    /// updates, so both are current before the app is opened.
+    func backgroundRefresh() async -> Bool {
+        await ready()
+        guard isSignedIn else { return true }
+        store.resumeDatabase()
+        defer { store.suspendDatabaseIfInBackground() }
+        await syncNow()
+        if case .synced = status { return true }
+        return false
+    }
 
     /// Syncs after `delay`, replacing any sync already waiting (so a burst of edits syncs once).
     func syncSoon(after delay: Duration = .zero) {

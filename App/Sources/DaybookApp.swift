@@ -29,10 +29,24 @@ struct DaybookApp: App {
                     case .background:
                         // Don't wait for the save delay; the app may be suspended.
                         store.saveBeforeSuspending()
+                        if sync.isSignedIn { BackgroundRefresh.schedule() }
                     default:
                         break
                     }
                 }
         }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
+            await refreshInBackground()
+        }
+    }
+
+    /// iOS woke the app to sync. Book the next refresh first, in case this one runs out of time.
+    @MainActor
+    private func refreshInBackground() async {
+        // A cold launch in the background restores the session asynchronously.
+        await sync.ready()
+        guard sync.isSignedIn else { return }
+        BackgroundRefresh.schedule()
+        _ = await sync.backgroundRefresh()
     }
 }

@@ -53,6 +53,9 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.nazmulhoque.daybook
             CFBundleURLSchemes: [daybook]
+        # Background refresh: sync now and then while the app isn't open (BackgroundRefresh.swift).
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [com.nazmulhoque.daybook.sync]
 
   DaybookWidgets:
     type: app-extension
