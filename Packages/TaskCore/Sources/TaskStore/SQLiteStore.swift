@@ -134,6 +134,11 @@ public final class SQLiteStore: Sendable {
         try await writer.write { db in try SyncLog.adopt(account: account, keepingLocalData: keepingLocalData, in: db) }
     }
 
+    /// Forgets the synced account (after it was deleted), keeping local data.
+    public func detachFromAccount() async throws {
+        try await writer.write { db in try SyncLog.detach(in: db) }
+    }
+
     /// Writes every row of `database`, replacing whatever is stored.
     public func replaceAll(with database: TaskDatabase) throws {
         try writer.write { db in try Self.replaceAll(with: database, in: db) }

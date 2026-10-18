@@ -122,4 +122,13 @@ struct SupabaseTransportTests {
         respond(500, "boom")
         await #expect(throws: SyncTransportError.server(status: 500, message: "boom")) { try await transport.push([]) }
     }
+
+    @Test func deleteAccountCallsTheFunction() async throws {
+        respond(204, "")
+        try await transport.deleteAccount()
+        let request = try #require(last?.request)
+        #expect(request.url?.path == "/rest/v1/rpc/delete_account")
+        #expect(request.value(forHTTPHeaderField: "Content-Profile") == "daybook")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer user-token")
+    }
 }

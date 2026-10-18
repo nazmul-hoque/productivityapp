@@ -200,4 +200,21 @@ struct AccountAdoptionTests {
         #expect(try tablet.db.todos.values.map(\.title) == ["In the account"])
         #expect(try await server.pull(since: 0, limit: 10).records.count == 1)  // the sample never uploaded
     }
+
+    @Test func detachingKeepsLocalDataAndRequeuesIt() async throws {
+        let server = FakeServer()
+        let device = try Device(server: server)
+        try device.edit { $0.add(Todo(title: "Keep me"), today: today) }
+        let account = UUID()
+        try await device.store.adoptAccount(account, keepingLocalData: true)
+        try await device.sync()
+        #expect(try await device.store.pendingChanges().records.isEmpty)
+
+        // The account was deleted: forget it, keep the to-do, and be ready to upload it anew.
+        try await device.store.detachFromAccount()
+        #expect(try await device.store.syncAccount() == nil)
+        #expect(try device.db.todos.values.map(\.title) == ["Keep me"])
+        #expect(try await device.store.pendingChanges().records.count == 1)
+        #expect(try await device.store.syncCursor() == 0)
+    }
 }

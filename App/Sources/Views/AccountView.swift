@@ -9,6 +9,8 @@ struct AccountView: View {
     @State private var code = ""
     @State private var working = false
     @State private var confirmingSignOut = false
+    @State private var confirmingDelete = false
+    @State private var deleteError: String?
     @FocusState private var focused: Field?
 
     enum Field { case email, code }
@@ -135,6 +137,31 @@ struct AccountView: View {
         }
         Section {
             Button("Sign Out", role: .destructive) { confirmingSignOut = true }
+        }
+        Section {
+            Button(role: .destructive) {
+                confirmingDelete = true
+            } label: {
+                HStack {
+                    Text("Delete Account…")
+                    if working { Spacer(); ProgressView() }
+                }
+            }
+            .disabled(working)
+            if let deleteError {
+                Label(deleteError, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            }
+        } footer: {
+            Text("Deletes your account and the to-dos synced to it, on all your devices. This can't be undone.")
+        }
+        .alert("Delete your account?", isPresented: $confirmingDelete) {
+            Button("Delete Account", role: .destructive) {
+                run { deleteError = await sync.deleteAccount() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your account and everything synced to it will be permanently deleted. Other devices will be signed out. The to-dos on this device stay here, no longer synced.")
         }
         .confirmationDialog("Sign out on this device?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) { Task { await sync.signOut() } }

@@ -152,6 +152,19 @@ enum SyncLog {
         try setMeta("sync_cursor", "0", in: db)
     }
 
+    /// Stops tracking an account (it was deleted): local data stays, queued in full, so it
+    /// uploads if this device signs in to an account again.
+    static func detach(in db: Database) throws {
+        try db.execute(sql: "DELETE FROM meta WHERE key = 'sync_account'")
+        try db.execute(sql: "DELETE FROM sync_tombstone")
+        try setMeta("sync_cursor", "0", in: db)
+        for entity in Entity.allCases {
+            for id in try String.fetchAll(db, sql: "SELECT id FROM \(entity.rawValue)") {
+                if let id = UUID(uuidString: id) { try enqueue(entity, id, in: db) }
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private struct Key: Hashable {

@@ -114,6 +114,9 @@ Done:
 - Signing in on a device that already has to-dos when the account does too asks whether to merge
   them or replace this device's with the account's
 
+- Delete Account (required by the App Store): removes the account and its synced data on the
+  server; to-dos on the device stay, unsynced
+
 To turn it on, set up a Supabase project (`supabase/README.md`) and fill in
 `App/Sources/Store/AppConfig.swift`. Without it the app works as before, with no account.
 

@@ -15,4 +15,6 @@ psql < supabase/tests/supabase_mock.sql
 for migration in supabase/migrations/*.sql; do
     psql < "$migration"
 done
-psql < supabase/tests/sync_test.sql
+for test in supabase/tests/*_test.sql; do
+    psql < "$test"
+done

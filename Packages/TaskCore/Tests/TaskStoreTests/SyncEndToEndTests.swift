@@ -56,6 +56,19 @@ struct SyncEndToEndTests {
         #expect(try stranger.db.todos.isEmpty)
     }
 
+    @Test func deletingTheAccountRemovesItsData() async throws {
+        let transport = transport("SYNC_E2E_TOKEN_C")
+        let device = try Device(server: transport)
+        try device.edit { $0.add(Todo(title: "Soon gone"), today: today) }
+        #expect(try await device.sync().pushed == 1)
+
+        try await transport.deleteAccount()
+        #expect(try await transport.pull(since: 0, limit: 10).records.isEmpty)
+        // The token still verifies until it expires, but the user is gone: writes fail.
+        try device.edit { $0.add(Todo(title: "After"), today: today) }
+        await #expect(throws: SyncTransportError.self) { try await device.sync() }
+    }
+
     @Test func badTokenIsUnauthorized() async throws {
         let device = try Device(server: transport("SYNC_E2E_TOKEN_BAD"))
         await #expect(throws: SyncTransportError.unauthorized) { try await device.sync() }

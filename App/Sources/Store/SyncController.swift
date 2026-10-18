@@ -171,6 +171,24 @@ final class SyncController {
         status = .idle
     }
 
+    /// Permanently deletes the account and everything synced to it, on every device. To-dos on
+    /// this device stay here, no longer synced. Returns an error message if it failed.
+    func deleteAccount() async -> String? {
+        guard case .signedIn = account, let transport, let database = store.database else { return nil }
+        scheduled?.cancel()
+        // Wait for a sync in progress, so it can't write to the account after it's gone.
+        await running?.value
+        do {
+            try await retryingOnceIfUnauthorized { try await transport.deleteAccount() }
+            try await database.detachFromAccount()
+        } catch {
+            return message(for: error)
+        }
+        // The server has already ended the session; this clears it here.
+        await signOut()
+        return nil
+    }
+
     // MARK: - Syncing
 
     /// Syncs after `delay`, replacing any sync already waiting (so a burst of edits syncs once).

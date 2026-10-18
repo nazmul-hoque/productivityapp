@@ -6,6 +6,7 @@ with a clock per field, and two functions the app calls through the REST API:
 - `sync_push(records jsonb)` merges records into the caller's data, field by field (newer clock
   wins, deletion always wins). One push per user runs at a time.
 - `sync_pull(since bigint, max_records int)` returns the caller's records changed after a version.
+- `delete_account()` deletes the caller's records and their user (see below).
 
 Row-level security limits every user to their own rows; there are no write policies, so clients
 can only write through `sync_push`. The data itself lives on each device in SQLite; this is the
@@ -58,6 +59,14 @@ The `daybook` schema keeps the data apart, but everything under *Authentication*
 
 The default email sender is rate limited (a few emails an hour) and meant for testing. Before
 real users, set up custom SMTP under *Project Settings → Authentication*.
+
+## Deleting accounts
+
+The App Store requires apps with sign-up to let people delete their account in the app:
+*Account → Delete Account*. It calls `daybook.delete_account()`, which deletes the caller's
+records and their Supabase Auth user, ending their sessions everywhere. Because the project's users
+are shared, this also removes the sign-in for any other app on the project, along with anything that
+app stores against the user with `on delete cascade`. To-dos on the device stay there, unsynced.
 
 ## Tests
 

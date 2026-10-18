@@ -76,6 +76,12 @@ public struct SupabaseTransport: SyncTransport {
             cursor: rows.last?.version ?? cursor)
     }
 
+    /// Permanently deletes the signed-in user's account and everything synced to it.
+    public func deleteAccount() async throws {
+        struct Empty: Encodable {}
+        _ = try await call("delete_account", body: Empty())
+    }
+
     private func call(_ function: String, body: some Encodable) async throws -> Data {
         var request = URLRequest(url: config.restURL.appendingPathComponent("rpc/\(function)"))
         request.httpMethod = "POST"

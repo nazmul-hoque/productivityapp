@@ -14,6 +14,7 @@ native=$([ "$(uname)" = Darwin ] && echo 1 || echo 0)
 secret="test-secret-that-is-at-least-32-characters-long"
 user_a=00000000-0000-0000-0000-00000000000a
 user_b=00000000-0000-0000-0000-00000000000b
+user_c=00000000-0000-0000-0000-00000000000c
 
 pg="daybook-e2e-pg-$$"
 rest="daybook-e2e-rest-$$"
@@ -36,7 +37,7 @@ sleep 1
 psql() { docker exec -i "$pg" psql -U postgres -q -v ON_ERROR_STOP=1 "$@"; }
 psql < supabase/tests/supabase_mock.sql >/dev/null
 for migration in supabase/migrations/*.sql; do psql < "$migration" >/dev/null; done
-psql -c "insert into auth.users (id) values ('$user_a'), ('$user_b')" >/dev/null
+psql -c "insert into auth.users (id) values ('$user_a'), ('$user_b'), ('$user_c')" >/dev/null
 
 docker run -d --rm --name "$rest" "${network[@]}" ${publish[@]+"${publish[@]}"} \
     -e PGRST_DB_URI="postgres://authenticator:authenticator@$db_host:5432/postgres" \
@@ -56,12 +57,13 @@ jwt() {
 export NO_PROXY=localhost no_proxy=localhost SYNC_E2E_URL=http://localhost:3000
 export SYNC_E2E_TOKEN_A="$(jwt "$user_a" "$secret")"
 export SYNC_E2E_TOKEN_B="$(jwt "$user_b" "$secret")"
+export SYNC_E2E_TOKEN_C="$(jwt "$user_c" "$secret")"
 export SYNC_E2E_TOKEN_BAD="$(jwt "$user_a" "wrong-secret-wrong-secret-wrong-secret")"
 
 if [ "$native" = 1 ]; then
     swift test --package-path Packages/TaskCore --filter SyncEndToEndTests
 else
     docker run --rm --network host -v "$PWD/Packages/TaskCore":/pkg -w /pkg \
-        -e NO_PROXY -e no_proxy -e SYNC_E2E_URL -e SYNC_E2E_TOKEN_A -e SYNC_E2E_TOKEN_B -e SYNC_E2E_TOKEN_BAD \
+        -e NO_PROXY -e no_proxy -e SYNC_E2E_URL -e SYNC_E2E_TOKEN_A -e SYNC_E2E_TOKEN_B -e SYNC_E2E_TOKEN_C -e SYNC_E2E_TOKEN_BAD \
         "$image" swift test --filter SyncEndToEndTests
 fi
