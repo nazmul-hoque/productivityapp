@@ -10,7 +10,7 @@ struct ProductivityApp: App {
         WindowGroup {
             RootView()
                 .environment(store)
-                .task { await store.requestNotificationPermission() }
+                .task { await store.syncReminders() }
                 .onChange(of: scenePhase) { _, phase in
                     switch phase {
                     case .active:

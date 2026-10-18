@@ -8,16 +8,10 @@ final class ReminderScheduler {
     /// iOS keeps at most 64 pending notifications per app.
     private let limit = 60
 
-    func requestAuthorization() async {
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
-    }
-
-    /// Replaces all pending reminders with the next ones due.
+    /// Replaces all pending reminders with the next ones due. Asks for permission the first
+    /// time there is a reminder to schedule, rather than at launch, so the prompt makes sense.
     func sync(with db: TaskDatabase) async {
         let center = UNUserNotificationCenter.current()
-        let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-
         let now = Date()
         let due: [(Todo, Date)] = db.todos.values.compactMap { todo in
             guard todo.status == .open, !todo.isDeleted, let time = todo.reminder, case .on(let day) = todo.when else { return nil }
@@ -25,6 +19,13 @@ final class ReminderScheduler {
             return fire > now ? (todo, fire) : nil
         }
         .sorted { $0.1 < $1.1 }
+
+        var status = await center.notificationSettings().authorizationStatus
+        if status == .notDetermined && !due.isEmpty {
+            _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+            status = await center.notificationSettings().authorizationStatus
+        }
+        guard status == .authorized || status == .provisional else { return }
 
         center.removeAllPendingNotificationRequests()
         for (todo, fire) in due.prefix(limit) {

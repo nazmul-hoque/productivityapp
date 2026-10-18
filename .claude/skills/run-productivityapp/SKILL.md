@@ -33,7 +33,7 @@ D=.claude/skills/run-productivityapp/driver.sh
 $D smoke                      # whole flow: fresh install -> quick-add "Call Sam tomorrow..." -> check Upcoming -> "SMOKE OK"
 
 $D launch --fresh             # boot sim, uninstall (wipes data -> sample data re-seeded), install, launch
-$D allow                      # dismiss the first-launch notification prompt (needed after --fresh)
+$D allow                      # tap Allow on the notification prompt (appears once, after the first reminder is added)
 $D ui                         # labelled elements: type<TAB>label<TAB>id<TAB>x,y   (points)
 $D tap "New To-Do"            # tap by accessibility label
 $D tap Add Button             # label + element type when the label is ambiguous
@@ -70,8 +70,9 @@ and use the simulator only for UI changes.
   `axe tap --label Allow` reports "No accessibility element matched". `allow` taps the button by
   point (275,517). Those coordinates are for iPhone 17 Pro; on another device read them off a
   screenshot (pixels ÷ 3 = points).
-- **If no prompt is showing, `allow` taps the app instead.** That point is the Logbook row on the
-  Lists screen, so a stray `allow` navigates to Logbook. Only call it right after `launch --fresh`.
+- **The prompt appears when the first to-do with a reminder is saved, not at launch.** On a fresh
+  install, quick-adding text with a time ("at 10am") brings it up about 300ms after Add. If no prompt
+  is showing, `allow` taps the app instead (the Logbook row on the Lists screen).
 - **`ui` lists covered views too.** While a sheet is open, `describe-ui` still returns the Lists
   rows underneath it, so a label can match two elements. Add the element type
   (`tap Add Button`) to disambiguate.

@@ -48,7 +48,7 @@ case "$cmd" in
     xcrun simctl launch "$UDID" "$BUNDLE_ID"
     sleep 2
     ;;
-  allow)  # dismiss the first-launch notification prompt (SpringBoard alert, not in the app's a11y tree)
+  allow)  # tap Allow on the notification prompt (SpringBoard alert, not in the app's a11y tree)
     need_udid
     axe tap -x 275 -y 517 --udid "$UDID"
     ;;
@@ -86,11 +86,11 @@ case "$cmd" in
     ;;
   smoke)  # end-to-end: fresh launch, quick-add a to-do, verify it lands in Upcoming
     "$0" launch --fresh
-    "$0" allow
     "$0" tap "New To-Do"
     "$0" type 'Call Sam tomorrow at 10am #phone /Work'
     sleep 1; "$0" ss quickadd
     "$0" tap Add Button
+    sleep 1; "$0" allow  # the first reminder triggers the notification prompt
     "$0" tap Upcoming Button
     "$0" ss upcoming
     if "$0" ui | grep -q $'StaticText\tCall Sam\t'; then echo "SMOKE OK"; else echo "SMOKE FAILED" >&2; exit 1; fi

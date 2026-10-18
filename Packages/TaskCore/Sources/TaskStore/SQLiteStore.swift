@@ -19,8 +19,13 @@ public final class SQLiteStore: Sendable {
     }
 
     /// An in-memory database, for tests and previews.
-    public init() throws {
-        writer = try DatabaseQueue(configuration: Self.configuration)
+    public convenience init() throws {
+        try self.init(writer: DatabaseQueue(configuration: Self.configuration))
+    }
+
+    /// Wraps an open database and migrates it.
+    init(writer: any DatabaseWriter) throws {
+        self.writer = writer
         try Schema.migrator.migrate(writer)
     }
 
@@ -32,12 +37,19 @@ public final class SQLiteStore: Sendable {
         return config
     }
 
-    /// Whether the store holds no data yet (a fresh install, or before migrating old data).
-    public func isEmpty() throws -> Bool {
+    /// Whether the store has been given its first contents (see `initialize(with:)`). It stays
+    /// initialized even if the user later deletes everything.
+    public func isInitialized() throws -> Bool {
         try writer.read { db in
-            try ["todo", "project", "area", "tag"].allSatisfy { table in
-                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(table)") == 0
-            }
+            try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key = 'initialized'") != nil
+        }
+    }
+
+    /// Fills a new store (with imported or sample data) and marks it initialized, in one transaction.
+    public func initialize(with database: TaskDatabase) throws {
+        try writer.write { db in
+            try Self.replaceAll(with: database, in: db)
+            try db.execute(sql: "INSERT OR REPLACE INTO meta (key, value) VALUES ('initialized', '1')")
         }
     }
 
@@ -47,12 +59,14 @@ public final class SQLiteStore: Sendable {
 
     /// Writes every row of `database`, replacing whatever is stored.
     public func replaceAll(with database: TaskDatabase) throws {
-        try writer.write { db in
-            for table in ["todo_tag", "checklist_item", "todo", "heading", "project_tag", "project", "area_tag", "area", "tag"] {
-                try db.execute(sql: "DELETE FROM \(table)")
-            }
-            try Self.write(Changes(from: TaskDatabase(), to: database), in: db)
+        try writer.write { db in try Self.replaceAll(with: database, in: db) }
+    }
+
+    private static func replaceAll(with database: TaskDatabase, in db: Database) throws {
+        for table in ["todo_tag", "checklist_item", "todo", "heading", "project_tag", "project", "area_tag", "area", "tag"] {
+            try db.execute(sql: "DELETE FROM \(table)")
         }
+        try write(Changes(from: TaskDatabase(), to: database), in: db)
     }
 
     /// Writes the rows that differ between two snapshots. Safe to repeat: writing the same
@@ -70,7 +84,7 @@ public final class SQLiteStore: Sendable {
         try await writer.write { db in try Self.write(changes, in: db) }
     }
 
-    private static func write(_ changes: Changes, in db: Database) throws {
+    static func write(_ changes: Changes, in db: Database) throws {
         // Rows may reference ones written later in the same transaction (a child tag before its parent).
         try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
         let now = Date()

@@ -38,8 +38,7 @@ final class AppStore {
         perform { $0.purgeTrash() }
     }
 
-    func requestNotificationPermission() async {
-        await reminders.requestAuthorization()
+    func syncReminders() async {
         await reminders.sync(with: db)
     }
 

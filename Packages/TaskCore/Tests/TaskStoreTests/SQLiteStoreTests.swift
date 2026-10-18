@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import TaskCore
+import GRDB
 @testable import TaskStore
 
 struct SQLiteStoreTests {
@@ -68,11 +69,28 @@ struct SQLiteStoreTests {
         #expect(try store.load() == other)
     }
 
-    @Test func emptiness() throws {
+    @Test func staysInitializedWhenEmptied() throws {
         let store = try SQLiteStore()
-        #expect(try store.isEmpty())
-        try store.save(from: TaskDatabase(), to: sample())
-        #expect(try !store.isEmpty())
+        #expect(try !store.isInitialized())
+        let db = sample()
+        try store.initialize(with: db)
+        #expect(try store.isInitialized())
+        #expect(try store.load() == db)
+
+        // The user deletes everything: the store is empty but must not be re-seeded.
+        try store.replaceAll(with: TaskDatabase())
+        #expect(try store.isInitialized())
+    }
+
+    @Test func upgradeMarksStoresWithDataAsInitialized() throws {
+        let withData = try DatabaseQueue()
+        try Schema.migrator.migrate(withData, upTo: "v1")
+        try withData.write { try SQLiteStore.write(Changes(from: TaskDatabase(), to: sample()), in: $0) }
+        #expect(try SQLiteStore(writer: withData).isInitialized())
+
+        let empty = try DatabaseQueue()
+        try Schema.migrator.migrate(empty, upTo: "v1")
+        #expect(try !SQLiteStore(writer: empty).isInitialized())
     }
 
     @Test func fileDatabaseSurvivesReopening() async throws {

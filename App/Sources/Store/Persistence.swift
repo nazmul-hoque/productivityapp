@@ -25,14 +25,14 @@ enum Persistence {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     }
 
-    /// Opens the store and loads its contents. A fresh store is filled from the old JSON
+    /// Opens the store and loads its contents. A new store is filled once from the old JSON
     /// file if there is one, otherwise with the sample project.
     static func open(today: LocalDay) -> (store: SQLiteStore?, database: TaskDatabase) {
         do {
             let store = try SQLiteStore(url: databaseURL)
-            if try store.isEmpty() {
+            if try !store.isInitialized() {
                 let initial = importLegacyJSON() ?? SampleData.database(today: today)
-                try store.replaceAll(with: initial)
+                try store.initialize(with: initial)
                 retireLegacyJSON()
                 return (store, initial)
             }

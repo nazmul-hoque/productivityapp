@@ -114,6 +114,20 @@ enum Schema {
                 CREATE INDEX todo_tag_tag ON todo_tag(tag_id);
                 """)
         }
+        migrator.registerMigration("v2: meta") { db in
+            // Store-level flags. A store that already holds data has been initialized; mark it so
+            // emptying it later doesn't bring the first-launch content back.
+            try db.execute(sql: """
+                CREATE TABLE meta (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    value TEXT NOT NULL
+                );
+                INSERT INTO meta (key, value)
+                    SELECT 'initialized', '1'
+                    WHERE EXISTS (SELECT 1 FROM todo) OR EXISTS (SELECT 1 FROM project)
+                       OR EXISTS (SELECT 1 FROM area) OR EXISTS (SELECT 1 FROM tag);
+                """)
+        }
         return migrator
     }
 }
