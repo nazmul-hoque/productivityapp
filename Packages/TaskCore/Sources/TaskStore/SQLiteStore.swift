@@ -95,13 +95,38 @@ public final class SQLiteStore: Sendable {
         }
     }
 
+    // MARK: - Sync
+
+    /// Local changes not yet pushed, and a token to pass to `markPushed(upTo:)` once they are.
+    public func pendingChanges() async throws -> (records: [SyncRecord], upTo: Int64) {
+        try await writer.read { db in try SyncLog.pending(in: db) }
+    }
+
+    public func markPushed(upTo seq: Int64) async throws {
+        try await writer.write { db in try SyncLog.markPushed(upTo: seq, in: db) }
+    }
+
+    /// The server position this store has pulled up to.
+    public func syncCursor() async throws -> Int64 {
+        try await writer.read { db in try SyncLog.cursor(in: db) }
+    }
+
+    /// Merges pulled records and advances the cursor, in one transaction. Returns whether the
+    /// local data changed (the app should reload).
+    @discardableResult
+    public func applyRemote(_ records: [SyncRecord], cursor: Int64) async throws -> Bool {
+        try await writer.write { db in try SyncLog.apply(records, cursor: cursor, in: db) }
+    }
+
     /// Writes every row of `database`, replacing whatever is stored.
     public func replaceAll(with database: TaskDatabase) throws {
         try writer.write { db in try Self.replaceAll(with: database, in: db) }
     }
 
     private static func replaceAll(with database: TaskDatabase, in db: Database) throws {
-        for table in ["todo_tag", "checklist_item", "todo", "heading", "project_tag", "project", "area_tag", "area", "tag"] {
+        // Local replacement: the old rows' sync bookkeeping goes too, and nothing is tombstoned.
+        for table in ["todo_tag", "checklist_item", "todo", "heading", "project_tag", "project", "area_tag", "area", "tag",
+                      "sync_clock", "sync_outbox", "sync_tombstone"] {
             try db.execute(sql: "DELETE FROM \(table)")
         }
         try write(Changes(from: TaskDatabase(), to: database), in: db)
@@ -122,7 +147,14 @@ public final class SQLiteStore: Sendable {
         try await writer.write { db in try Self.write(changes, in: db) }
     }
 
+    /// Writes the rows and records the change for sync (field clocks, outbox, tombstones).
     static func write(_ changes: Changes, in db: Database) throws {
+        try writeRows(changes, in: db)
+        try SyncLog.record(changes, in: db)
+    }
+
+    /// Writes the rows only; used when applying changes that came from the server.
+    static func writeRows(_ changes: Changes, in db: Database) throws {
         // Rows may reference ones written later in the same transaction (a child tag before its parent).
         try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
         let now = Date()
@@ -157,12 +189,42 @@ struct Changes: Sendable {
         var todos: [UUID] = []
     }
 
+    /// For sync: which fields of each changed row differ (all of them for a new row).
+    var fieldChanges: [FieldChange] = []
+
+    struct FieldChange: Sendable {
+        var entity: Entity
+        var id: UUID
+        var fields: [String]
+    }
+
     init(from old: TaskDatabase, to new: TaskDatabase) {
         (areas, removed.areas) = Self.diff(old.areas, new.areas)
         (tags, removed.tags) = Self.diff(old.tags, new.tags)
         (projects, removed.projects) = Self.diff(old.projects, new.projects)
         (headings, removed.headings) = Self.diff(old.headings, new.headings)
         (todos, removed.todos) = Self.diff(old.todos, new.todos)
+        fieldChanges = Self.fieldChanges(.area, old.areas, areas)
+            + Self.fieldChanges(.tag, old.tags, tags)
+            + Self.fieldChanges(.project, old.projects, projects)
+            + Self.fieldChanges(.heading, old.headings, headings)
+            + Self.fieldChanges(.todo, old.todos, todos)
+    }
+
+    /// Removed rows, by entity.
+    var removedKeys: [(Entity, UUID)] {
+        removed.areas.map { (.area, $0) } + removed.tags.map { (.tag, $0) } + removed.projects.map { (.project, $0) }
+            + removed.headings.map { (.heading, $0) } + removed.todos.map { (.todo, $0) }
+    }
+
+    private static func fieldChanges<T: Encodable & Identifiable>(_ entity: Entity, _ old: [UUID: T], _ changed: [T]) -> [FieldChange]
+    where T.ID == UUID {
+        changed.compactMap { item in
+            let new = (try? RecordCoding.fields(of: item)) ?? [:]
+            let previous = old[item.id].flatMap { try? RecordCoding.fields(of: $0) }
+            let fields = RecordCoding.changedFields(previous, new)
+            return fields.isEmpty ? nil : FieldChange(entity: entity, id: item.id, fields: fields)
+        }
     }
 
     var isEmpty: Bool {

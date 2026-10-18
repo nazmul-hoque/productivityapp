@@ -136,6 +136,39 @@ enum Schema {
                 ALTER TABLE project ADD COLUMN repeat_index INTEGER;
                 """)
         }
+        migrator.registerMigration("v4: sync tracking") { db in
+            // Per-field change clocks, rows waiting to be pushed, and deletions to push.
+            // Every row that exists now is queued, so the first sync uploads it.
+            try db.execute(sql: """
+                CREATE TABLE sync_clock (
+                    entity TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    field TEXT NOT NULL,
+                    clock TEXT NOT NULL,
+                    PRIMARY KEY (entity, id, field)
+                ) WITHOUT ROWID;
+
+                CREATE TABLE sync_outbox (
+                    entity TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    seq INTEGER NOT NULL,            -- order of the latest change; see SyncLog.markPushed
+                    PRIMARY KEY (entity, id)
+                ) WITHOUT ROWID;
+
+                CREATE TABLE sync_tombstone (
+                    entity TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    clock TEXT NOT NULL,
+                    PRIMARY KEY (entity, id)
+                ) WITHOUT ROWID;
+
+                INSERT INTO sync_outbox (entity, id, seq) SELECT 'area', id, 0 FROM area;
+                INSERT INTO sync_outbox (entity, id, seq) SELECT 'tag', id, 0 FROM tag;
+                INSERT INTO sync_outbox (entity, id, seq) SELECT 'project', id, 0 FROM project;
+                INSERT INTO sync_outbox (entity, id, seq) SELECT 'heading', id, 0 FROM heading;
+                INSERT INTO sync_outbox (entity, id, seq) SELECT 'todo', id, 0 FROM todo;
+                """)
+        }
         return migrator
     }
 }
