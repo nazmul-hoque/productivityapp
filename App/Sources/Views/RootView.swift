@@ -12,6 +12,8 @@ struct RootView: View {
     @State private var selection: Destination?
     @State private var showingQuickAdd = false
     @State private var showingSearch = false
+    /// Pass `-hasSeenOnboarding YES` as a launch argument to skip it (the run skill does).
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @State private var targets = InsertionTargets()
     @State private var dropTarget: DropTarget?
     /// Set when the add button was dropped onto a list; otherwise quick add uses the current screen.
@@ -47,6 +49,9 @@ struct RootView: View {
         }
         .sheet(isPresented: $showingSearch) {
             SearchView(selection: $selection)
+        }
+        .fullScreenCover(isPresented: Binding(get: { !hasSeenOnboarding }, set: { hasSeenOnboarding = !$0 })) {
+            OnboardingView()
         }
         .onOpenURL { url in
             if url == SharedStore.todayURL { selection = .list(.today) }

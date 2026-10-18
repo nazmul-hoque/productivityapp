@@ -33,6 +33,7 @@ D=.claude/skills/run-productivityapp/driver.sh
 $D smoke                      # whole flow: fresh install -> quick-add "Call Sam tomorrow..." -> check Upcoming -> "SMOKE OK"
 
 $D launch --fresh             # boot sim, uninstall (wipes data -> sample data re-seeded), install, launch
+$D launch --fresh --onboarding  # same, but show the first-launch pages (skipped by default via -hasSeenOnboarding YES)
 $D allow                      # tap Allow on the notification prompt (appears once, after the first reminder is added)
 $D ui                         # labelled elements: type<TAB>label<TAB>id<TAB>x,y   (points)
 $D tap "New To-Do"            # tap by accessibility label

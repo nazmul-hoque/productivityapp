@@ -40,12 +40,18 @@ case "$cmd" in
       grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
     [ -d "$APP" ]
     ;;
-  launch)  # launch [--fresh]  (--fresh uninstalls first: wipes data, re-seeds sample data)
+  launch)  # launch [--fresh] [--onboarding]  (--fresh: wipe data, re-seed samples; --onboarding: show first-launch pages)
     boot
-    if [ "${1:-}" = "--fresh" ]; then xcrun simctl uninstall "$UDID" "$BUNDLE_ID" || true; fi
+    skip=(-hasSeenOnboarding YES)
+    for arg in "$@"; do
+      case "$arg" in
+        --fresh) xcrun simctl uninstall "$UDID" "$BUNDLE_ID" || true ;;
+        --onboarding) skip=() ;;
+      esac
+    done
     xcrun simctl install "$UDID" "$APP"
     xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
-    xcrun simctl launch "$UDID" "$BUNDLE_ID"
+    xcrun simctl launch "$UDID" "$BUNDLE_ID" "${skip[@]+"${skip[@]}"}"
     sleep 2
     ;;
   allow)  # tap Allow on the notification prompt (SpringBoard alert, not in the app's a11y tree)
