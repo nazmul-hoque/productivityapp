@@ -118,6 +118,22 @@ public final class SQLiteStore: Sendable {
         try await writer.write { db in try SyncLog.apply(records, cursor: cursor, in: db) }
     }
 
+    /// The account this store last synced with, if any.
+    public func syncAccount() async throws -> UUID? {
+        try await writer.read { db in try SyncLog.account(in: db) }
+    }
+
+    /// Whether there are any to-dos, projects, areas or tags.
+    public func hasLocalData() async throws -> Bool {
+        try await writer.read { db in try SyncLog.hasData(in: db) }
+    }
+
+    /// Prepares to sync with a newly signed-in account: everything is pulled again, and local data
+    /// is either uploaded to the account (merged) or erased so the device shows only the account's.
+    public func adoptAccount(_ account: UUID, keepingLocalData: Bool) async throws {
+        try await writer.write { db in try SyncLog.adopt(account: account, keepingLocalData: keepingLocalData, in: db) }
+    }
+
     /// Writes every row of `database`, replacing whatever is stored.
     public func replaceAll(with database: TaskDatabase) throws {
         try writer.write { db in try Self.replaceAll(with: database, in: db) }

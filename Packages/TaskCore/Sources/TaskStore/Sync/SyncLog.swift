@@ -120,6 +120,38 @@ enum SyncLog {
         return repaired != current
     }
 
+    // MARK: - Accounts
+
+    /// The account this store last synced with.
+    static func account(in db: Database) throws -> UUID? {
+        try meta("sync_account", in: db).flatMap(UUID.init)
+    }
+
+    static func hasData(in db: Database) throws -> Bool {
+        try ["todo", "project", "area", "tag"].contains { table in
+            try Int.fetchOne(db, sql: "SELECT EXISTS (SELECT 1 FROM \(table))") == 1
+        }
+    }
+
+    /// Starts syncing with `account` from scratch: pull everything again, and either upload all
+    /// local data to it (`keepingLocalData`) or erase local data first so the device mirrors the account.
+    static func adopt(account: UUID, keepingLocalData: Bool, in db: Database) throws {
+        if keepingLocalData {
+            for entity in Entity.allCases {
+                for id in try String.fetchAll(db, sql: "SELECT id FROM \(entity.rawValue)") {
+                    if let id = UUID(uuidString: id) { try enqueue(entity, id, in: db) }
+                }
+            }
+        } else {
+            for table in ["todo_tag", "checklist_item", "todo", "heading", "project_tag", "project", "area_tag", "area", "tag",
+                          "sync_clock", "sync_outbox", "sync_tombstone"] {
+                try db.execute(sql: "DELETE FROM \(table)")
+            }
+        }
+        try setMeta("sync_account", account.uuidString, in: db)
+        try setMeta("sync_cursor", "0", in: db)
+    }
+
     // MARK: - Helpers
 
     private struct Key: Hashable {
