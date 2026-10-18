@@ -23,6 +23,10 @@ struct TodayView: View {
                     Label("This Evening", systemImage: "moon.fill")
                         .foregroundStyle(Theme.evening)
                         .font(.subheadline.weight(.semibold))
+                        // Otherwise VoiceOver reads the moon's own label, "Do Not Disturb".
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("This Evening")
+                        .accessibilityAddTraits(.isHeader)
                         .dropSlot(eveningSlot, row: nil)
                 }
             }

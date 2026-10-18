@@ -93,7 +93,7 @@ case "$cmd" in
     sleep 1; "$0" allow  # the first reminder triggers the notification prompt
     "$0" tap Upcoming Button
     "$0" ss upcoming
-    if "$0" ui | grep -q $'StaticText\tCall Sam\t'; then echo "SMOKE OK"; else echo "SMOKE FAILED" >&2; exit 1; fi
+    if "$0" ui | grep -q 'Call Sam'; then echo "SMOKE OK"; else echo "SMOKE FAILED" >&2; exit 1; fi
     ;;
   stop)
     need_udid

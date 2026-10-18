@@ -26,6 +26,7 @@ struct AddButton: View {
             .gesture(drag)
             .accessibilityElement()
             .accessibilityLabel("New To-Do")
+            .accessibilityHint("Adds a to-do to this list")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { tap() }
             .sensoryFeedback(.impact(weight: .light), trigger: taps)

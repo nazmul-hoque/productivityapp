@@ -25,6 +25,9 @@ struct UpcomingView: View {
                             .foregroundStyle(.secondary)
                     }
                     .textCase(nil)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(store.today.days(until: group.day) == 1 ? "Tomorrow" : DayLabel.spoken(group.day))
+                    .accessibilityAddTraits(.isHeader)
                     .dropSlot(slot, row: nil)
                 }
             }

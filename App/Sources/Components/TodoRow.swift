@@ -13,6 +13,7 @@ struct TodoRow: View {
     /// A future instance of a repeating to-do, shown in Upcoming but not yet real.
     var isPreview = false
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isChecking = false
     @State private var showingEditor = false
     @State private var completions = 0
@@ -37,10 +38,10 @@ struct TodoRow: View {
                         .strikethrough(todo.status == .canceled)
                 }
                 if !details.isEmpty {
-                    Text(details.joined(separator: " · "))
+                    Text(details.map(\.shown).joined(separator: " · "))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                 }
             }
 
@@ -56,6 +57,18 @@ struct TodoRow: View {
         .padding(.vertical, 4)
         .opacity(isPreview ? 0.5 : 1)
         .contentShape(Rectangle())
+        // VoiceOver reads the row as one sentence; the check box becomes a named action.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenText)
+        .accessibilityValue(todo.status == .canceled ? "Canceled" : isChecked ? "Completed" : "")
+        .accessibilityAddTraits(isPreview ? [] : .isButton)
+        .accessibilityHint(isPreview ? "" : "Opens the to-do")
+        .accessibilityAction { if !isPreview { showingEditor = true } }
+        .accessibilityActions {
+            if !isPreview && context != .trash {
+                Button(todo.status.isClosed ? "Mark as Open" : "Complete", action: toggle)
+            }
+        }
         .onTapGesture { if !isPreview { showingEditor = true } }
         .sheet(isPresented: $showingEditor) {
             TodoEditorView(todo: todo)
@@ -101,26 +114,41 @@ struct TodoRow: View {
         return store.classifier.isIn(.today, todo)
     }
 
-    /// Secondary line: container, tags, checklist progress, notes and repeat indicators.
-    private var details: [String] {
-        var parts: [String] = []
+    /// Secondary line: container, tags, checklist progress, notes and repeat indicators, each
+    /// as shown and as VoiceOver says it.
+    private var details: [(shown: String, spoken: String)] {
+        var parts: [(shown: String, spoken: String)] = []
+        func add(_ shown: String, spoken: String? = nil) { parts.append((shown, spoken ?? shown)) }
         if context != .project, let container = store.title(of: Container(todo)) {
-            parts.append(container)
+            add(container)
         }
         if context == .list, case .on(let day) = todo.when, day > store.today {
-            parts.append(DayLabel.short(day, today: store.today))
+            add(DayLabel.short(day, today: store.today), spoken: "starts " + DayLabel.short(day, today: store.today))
         }
         let tags = todo.tagIDs.compactMap { store.db.tags[$0]?.title }.sorted()
-        if !tags.isEmpty { parts.append(tags.joined(separator: ", ")) }
+        if !tags.isEmpty { add(tags.joined(separator: ", ")) }
         if !todo.checklist.isEmpty {
-            parts.append("\(todo.checklist.filter(\.isDone).count)/\(todo.checklist.count)")
+            let done = todo.checklist.filter(\.isDone).count
+            add("\(done)/\(todo.checklist.count)", spoken: "\(done) of \(todo.checklist.count) checklist items done")
         }
-        if todo.repetition != nil { parts.append("↻") }
-        if !todo.notes.isEmpty { parts.append("✎") }
+        if todo.repetition != nil { add("↻", spoken: "repeats") }
+        if !todo.notes.isEmpty { add("✎", spoken: "has notes") }
         if let reminder = todo.reminder, todo.status == .open {
-            parts.append(reminder.formatted)
+            add(reminder.formatted, spoken: "reminder at " + reminder.formatted)
         }
         return parts
+    }
+
+    /// The whole row for VoiceOver, e.g. "Call Sam, Today, Work, phone, reminder at 10:00 AM".
+    private var spokenText: String {
+        var parts = [todo.title.isEmpty ? "New To-Do" : todo.title]
+        if showsTodayStar { parts.append(todo.isEvening ? "This Evening" : "Today") }
+        if let deadline = todo.deadline, todo.status == .open {
+            parts.append("due " + DayLabel.short(deadline, today: store.today))
+        }
+        parts += details.map(\.spoken)
+        if isPreview { parts.append("future repeat") }
+        return parts.joined(separator: ", ")
     }
 
     private func toggle() {

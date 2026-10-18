@@ -37,6 +37,8 @@ struct ProjectView: View {
                         Label(repetition.rule.summary, systemImage: "repeat")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Repeats " + repetition.rule.summary.lowercased())
                     }
                 }
                 if !project.notes.isEmpty {
@@ -110,6 +112,7 @@ private struct HeadingHeader: View {
                 Image(systemName: "ellipsis")
                     .foregroundStyle(.secondary)
             }
+            .accessibilityLabel("\(heading.title) options")
         }
     }
 }

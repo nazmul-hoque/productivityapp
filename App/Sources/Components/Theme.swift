@@ -57,6 +57,11 @@ enum DayLabel {
         }
     }
 
+    /// e.g. "Monday, October 19", for VoiceOver.
+    static func spoken(_ day: LocalDay) -> String {
+        format(day, "EEEEMMMMd")
+    }
+
     /// e.g. "Mon, Oct 19", used for Upcoming headers.
     static func long(_ day: LocalDay) -> String {
         format(day, "EEEMMMd")
