@@ -18,7 +18,7 @@ struct ProductivityApp: App {
                         store.refresh()
                     case .background:
                         // Don't wait for the save delay; the app may be suspended.
-                        Task { await store.save() }
+                        store.saveBeforeSuspending()
                     default:
                         break
                     }

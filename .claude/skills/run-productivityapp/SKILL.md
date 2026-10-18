@@ -83,6 +83,10 @@ and use the simulator only for UI changes.
 
 ## Troubleshooting
 
+- `Entitlements file "ProductivityApp.entitlements" was modified during the build` (file unchanged in
+  git) → Xcode's cached build plan is stale, typically after a branch switch or merge rewrote the file.
+  It only shows up under some shells (the driver's bash, not zsh). Fix:
+  `rm -rf .build/DerivedData/Build/Intermediates.noindex/XCBuildData`, then build again.
 - `xcodegen: command not found` → `driver.sh setup` (or `brew install xcodegen`).
 - `No available simulator named 'iPhone 17 Pro'` → `xcrun simctl list devices available`, then set
   `DEVICE_NAME`.

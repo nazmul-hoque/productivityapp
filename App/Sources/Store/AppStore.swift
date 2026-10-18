@@ -18,6 +18,9 @@ final class AppStore {
     @ObservationIgnored private var saved: TaskDatabase
     @ObservationIgnored private let reminders = ReminderScheduler()
     @ObservationIgnored private var saveTask: Task<Void, Never>?
+    /// The write in progress. Writes run one at a time so `saved` always matches the file.
+    @ObservationIgnored private var writing: Task<Void, Never>?
+    @ObservationIgnored private var backgroundTask = UIBackgroundTaskIdentifier.invalid
 
     init() {
         let today = LocalDay(Date())
@@ -56,19 +59,42 @@ final class AppStore {
         }
     }
 
-    /// Writes pending changes now (also called when the app goes to the background).
+    /// Writes pending changes now and returns once they are on disk (or the write failed).
     func save() async {
+        while let current = writing { await current.value }
         guard let storage, db != saved else { return }
         let base = saved
         let snapshot = db
-        saved = snapshot  // Claim it now so an overlapping save doesn't write the same rows.
-        do {
-            try await storage.save(from: base, to: snapshot)
-        } catch {
-            // Diff from the older snapshot next time; rewriting rows is harmless.
-            saved = base
-            print("Could not save: \(error)")
+        let write = Task {
+            do {
+                try await storage.save(from: base, to: snapshot)
+                saved = snapshot
+            } catch {
+                // `saved` still matches the file, so the next save writes these rows again.
+                print("Could not save: \(error)")
+            }
         }
+        writing = write
+        await write.value
+        writing = nil
+    }
+
+    /// Saves when the app goes to the background, asking iOS for time to finish first.
+    func saveBeforeSuspending() {
+        guard backgroundTask == .invalid else { return }
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Save") { [weak self] in
+            self?.endBackgroundTask()
+        }
+        Task {
+            await save()
+            endBackgroundTask()
+        }
+    }
+
+    private func endBackgroundTask() {
+        guard backgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTask)
+        backgroundTask = .invalid
     }
 
     // MARK: - Convenience
