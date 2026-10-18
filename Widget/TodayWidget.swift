@@ -14,7 +14,8 @@ struct TodayWidget: Widget {
         }
         .configurationDisplayName("Today")
         .description("What's planned for today.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge,
+                            .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }
 
@@ -75,6 +76,66 @@ struct TodayWidgetView: View {
     let entry: TodayEntry
 
     var body: some View {
+        switch family {
+        case .accessoryCircular: circular
+        case .accessoryRectangular: rectangular
+        case .accessoryInline: inline
+        default: list
+        }
+    }
+
+    // MARK: - Lock Screen
+
+    /// The number of to-dos left today.
+    private var circular: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+            VStack(spacing: 0) {
+                Image(systemName: "star.fill")
+                    .font(.caption)
+                    .widgetAccentable()
+                Text(entry.isUnavailable ? "–" : "\(entry.count)")
+                    .font(.title2.weight(.semibold))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(inlineText)
+    }
+
+    /// The count and the first to-dos.
+    private var rectangular: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Label(entry.count > 0 ? "Today · \(entry.count)" : "Today", systemImage: "star.fill")
+                .font(.headline)
+                .widgetAccentable()
+            if entry.isUnavailable {
+                Text("Open the app")
+            } else if entry.count == 0 {
+                Text("All clear")
+            } else {
+                ForEach((entry.today + entry.evening).prefix(2)) { Text($0.title).lineLimit(1) }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// One line above the clock.
+    private var inline: some View {
+        Label(inlineText, systemImage: "star.fill")
+    }
+
+    private var inlineText: String {
+        switch entry.count {
+        case _ where entry.isUnavailable: "Today"
+        case 0: "All clear today"
+        case 1: "1 to-do today"
+        default: "\(entry.count) to-dos today"
+        }
+    }
+
+    // MARK: - Home Screen
+
+    private var list: some View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 6 : 8) {
             header
             if entry.isUnavailable {
@@ -163,6 +224,12 @@ struct TodayWidgetView: View {
             }
         }
     }
+}
+
+#Preview(as: .accessoryRectangular) {
+    TodayWidget()
+} timeline: {
+    TodayEntry.sample
 }
 
 #Preview(as: .systemMedium) {

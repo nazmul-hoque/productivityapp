@@ -79,9 +79,10 @@ Done:
   convert to-do → project, Quick Find search, sample "Get to know the app" project
 - SQLite storage (GRDB) in the App Group container, ready for widgets and sync
 - Today widget (small, medium, large): check off to-dos right from it; refreshes after every change
-  and at midnight; tap to open Today. The app picks up the widget's changes when it comes to the foreground
+  and at midnight; tap to open Today. The app picks up the widget's changes when it comes to the foreground.
+  On the Lock Screen: circular (count), rectangular (count and first to-dos) and inline
 - Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
   Upcoming day) to add a to-do right there
 
 Next:
-- Lock screen widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass
+- Share extension, onboarding screens, haptics/motion polish, accessibility pass
