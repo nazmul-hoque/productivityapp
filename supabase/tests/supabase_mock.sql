@@ -2,6 +2,7 @@
 -- auth.users and auth.uid(), and the anon/authenticated roles. Not for use on Supabase itself.
 create role anon nologin;
 create role authenticated nologin;
+create role service_role nologin;
 create schema auth;
 grant usage on schema auth to anon, authenticated;
 create table auth.users (id uuid primary key);

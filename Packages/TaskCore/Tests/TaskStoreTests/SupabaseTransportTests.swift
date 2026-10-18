@@ -88,6 +88,7 @@ struct SupabaseTransportTests {
         #expect(request.url?.absoluteString == "https://transport.test/rest/v1/rpc/sync_push")
         #expect(request.httpMethod == "POST")
         #expect(request.value(forHTTPHeaderField: "apikey") == "anon-key")
+        #expect(request.value(forHTTPHeaderField: "Content-Profile") == "daybook")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer user-token")
         let body = try JSONDecoder().decode([String: [SyncRecord]].self, from: try #require(last?.body))
         #expect(body["records"]?.first?.id == id)

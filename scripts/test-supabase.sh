@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-name="productivity-pg-test-$$"
+name="daybook-pg-test-$$"
 docker run -d --rm --name "$name" -e POSTGRES_PASSWORD=test postgres:16 >/dev/null
 trap 'docker stop "$name" >/dev/null' EXIT
 until docker exec "$name" pg_isready -U postgres -q; do sleep 0.5; done

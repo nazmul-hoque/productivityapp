@@ -1,5 +1,5 @@
 # Generate the Xcode project with:  brew install xcodegen && xcodegen
-name: ProductivityApp
+name: Daybook
 options:
   bundleIdPrefix: com.nazmulhoque
   deploymentTarget:
@@ -17,7 +17,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
 
 targets:
-  ProductivityApp:
+  Daybook:
     type: application
     platform: iOS
     sources:
@@ -29,15 +29,15 @@ targets:
         product: TaskCore
       - package: TaskCore
         product: TaskStore
-      - target: ProductivityWidgets
-      - target: ProductivityShare
+      - target: DaybookWidgets
+      - target: DaybookShare
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp
-        PRODUCT_NAME: ProductivityApp
+        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.daybook
+        PRODUCT_NAME: Daybook
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Productivity
+        INFOPLIST_KEY_CFBundleDisplayName: Daybook
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
@@ -45,16 +45,16 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
-        CODE_SIGN_ENTITLEMENTS: App/ProductivityApp.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/Daybook.entitlements
     info:
       # Merged with the generated Info.plist. The URL scheme lets sign-in links in emails open the app.
       path: App/Info.plist
       properties:
         CFBundleURLTypes:
-          - CFBundleURLName: com.nazmulhoque.productivityapp
-            CFBundleURLSchemes: [productivity]
+          - CFBundleURLName: com.nazmulhoque.daybook
+            CFBundleURLSchemes: [daybook]
 
-  ProductivityWidgets:
+  DaybookWidgets:
     type: app-extension
     platform: iOS
     sources:
@@ -68,17 +68,17 @@ targets:
     info:
       path: Widget/Info.plist
       properties:
-        CFBundleDisplayName: Productivity
+        CFBundleDisplayName: Daybook
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.daybook.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
-        CODE_SIGN_ENTITLEMENTS: Widget/ProductivityWidgets.entitlements
+        CODE_SIGN_ENTITLEMENTS: Widget/DaybookWidgets.entitlements
         SKIP_INSTALL: YES
 
-  ProductivityShare:
+  DaybookShare:
     type: app-extension
     platform: iOS
     sources:
@@ -92,7 +92,7 @@ targets:
     info:
       path: Share/Info.plist
       properties:
-        CFBundleDisplayName: Productivity
+        CFBundleDisplayName: Daybook
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
@@ -102,7 +102,7 @@ targets:
               NSExtensionActivationSupportsText: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp.share
+        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.daybook.share
         TARGETED_DEVICE_FAMILY: "1,2"
-        CODE_SIGN_ENTITLEMENTS: Share/ProductivityShare.entitlements
+        CODE_SIGN_ENTITLEMENTS: Share/DaybookShare.entitlements
         SKIP_INSTALL: YES

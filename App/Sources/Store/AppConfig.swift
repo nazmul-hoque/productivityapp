@@ -9,9 +9,10 @@ enum AppConfig {
     static let supabase: SupabaseConfig? = nil
     // static let supabase: SupabaseConfig? = SupabaseConfig(
     //     url: URL(string: "https://<project-ref>.supabase.co")!,
-    //     anonKey: "<anon public key>")
+    //     anonKey: "<anon public key>",
+    //     schema: "daybook")  // the default; must be an exposed schema (supabase/README.md)
 
     /// Where sign-in links in emails lead: this app, through its URL scheme. Must also be listed
     /// in Supabase under *Authentication → URL Configuration → Redirect URLs*.
-    static let authRedirect = URL(string: "productivity://auth-callback")!
+    static let authRedirect = URL(string: "daybook://auth-callback")!
 }

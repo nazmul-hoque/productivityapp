@@ -1,12 +1,12 @@
 ---
-name: run-productivityapp
-description: Build, run, launch, drive, tap through, screenshot or smoke-test the ProductivityApp SwiftUI iOS app in the iOS Simulator (XcodeGen + xcodebuild + simctl + AXe). Use when asked to run the app, check a UI change in the simulator, or take screenshots.
+name: run-daybook
+description: Build, run, launch, drive, tap through, screenshot or smoke-test the Daybook SwiftUI iOS app in the iOS Simulator (XcodeGen + xcodebuild + simctl + AXe). Use when asked to run the app, check a UI change in the simulator, or take screenshots.
 ---
 
-# Run ProductivityApp (iOS Simulator)
+# Run Daybook (iOS Simulator)
 
 SwiftUI iOS 17+ app (`App/`) on top of the `Packages/TaskCore` logic package. On macOS it is driven
-by `.claude/skills/run-productivityapp/driver.sh`: it wraps `xcodegen`, `xcodebuild`, `xcrun simctl`
+by `.claude/skills/run-daybook/driver.sh`: it wraps `xcodegen`, `xcodebuild`, `xcrun simctl`
 and [AXe](https://github.com/cameroncooke/AXe), a CLI that taps, types and reads the accessibility
 tree of a booted simulator. All paths are relative to the repo root. macOS + Xcode only (verified on
 Xcode 26.3, iOS 26.3 simulator, iPhone 17 Pro).
@@ -14,13 +14,13 @@ Xcode 26.3, iOS 26.3 simulator, iPhone 17 Pro).
 ## Prerequisites
 
 ```bash
-.claude/skills/run-productivityapp/driver.sh setup   # brew installs xcodegen, axe (cameroncooke/axe tap), jq if missing
+.claude/skills/run-daybook/driver.sh setup   # brew installs xcodegen, axe (cameroncooke/axe tap), jq if missing
 ```
 
 ## Build
 
 ```bash
-.claude/skills/run-productivityapp/driver.sh build   # xcodegen + xcodebuild into .build/DerivedData
+.claude/skills/run-daybook/driver.sh build   # xcodegen + xcodebuild into .build/DerivedData
 ```
 
 Prints `** BUILD SUCCEEDED **` or the `error:` lines. Re-run after any source change. `xcodegen`
@@ -29,7 +29,7 @@ runs every time, so added and removed files are picked up.
 ## Run (agent path)
 
 ```bash
-D=.claude/skills/run-productivityapp/driver.sh
+D=.claude/skills/run-daybook/driver.sh
 $D smoke                      # whole flow: fresh install -> quick-add "Call Sam tomorrow..." -> check Upcoming -> "SMOKE OK"
 
 $D launch --fresh             # boot sim, uninstall (wipes data -> sample data re-seeded), install, launch
@@ -54,7 +54,7 @@ In the quick-add sheet: `Cancel`, `Add`.
 
 ## Run (human path)
 
-`xcodegen && open ProductivityApp.xcodeproj`, pick an iPhone simulator, then press ⌘R.
+`xcodegen && open Daybook.xcodeproj`, pick an iPhone simulator, then press ⌘R.
 
 ## Test
 
@@ -85,7 +85,7 @@ and use the simulator only for UI changes.
 
 ## Troubleshooting
 
-- `Entitlements file "ProductivityApp.entitlements" was modified during the build` (file unchanged in
+- `Entitlements file "Daybook.entitlements" was modified during the build` (file unchanged in
   git) → Xcode's cached build plan is stale, typically after a branch switch or merge rewrote the file.
   It only shows up under some shells (the driver's bash, not zsh). Fix:
   `rm -rf .build/DerivedData/Build/Intermediates.noindex/XCBuildData`, then build again.

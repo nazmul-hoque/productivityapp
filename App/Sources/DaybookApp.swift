@@ -2,7 +2,7 @@ import SwiftUI
 import TaskCore
 
 @main
-struct ProductivityApp: App {
+struct DaybookApp: App {
     @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @Environment(\.scenePhase) private var scenePhase
 

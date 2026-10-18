@@ -58,7 +58,7 @@ final class ShareModel {
     /// Adds the to-do to the shared database. Returns `false` (with `error` set) if it couldn't.
     func save() -> Bool {
         guard let url = SharedStore.databaseURL else {
-            error = "Open Productivity once before sharing to it."
+            error = "Open Daybook once before sharing to it."
             return false
         }
         let todo = Todo(title: title.trimmingCharacters(in: .whitespacesAndNewlines), notes: notes,

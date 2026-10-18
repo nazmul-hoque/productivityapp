@@ -7,7 +7,7 @@ import TaskStore
 final class KeychainStorage: SecureStorage, @unchecked Sendable {
     private let service: String
 
-    init(service: String = "com.nazmulhoque.productivityapp.auth") {
+    init(service: String = "com.nazmulhoque.daybook.auth") {
         self.service = service
     }
 

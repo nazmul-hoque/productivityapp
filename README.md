@@ -1,4 +1,4 @@
-# Productivity App
+# Daybook
 
 A calm personal task manager inspired by the Things 3 workflow, built natively for iOS with SwiftUI.
 Android comes later.
@@ -35,21 +35,21 @@ The app layer only displays them.
 ## Storage
 
 Data is stored on the device in SQLite, in the App Group container
-(`group.com.nazmulhoque.productivityapp`) at `Database/tasks.sqlite`, so widgets and the share
+(`group.com.nazmulhoque.daybook`) at `Database/tasks.sqlite`, so widgets and the share
 extension can open the same file. The app works on an in-memory `TaskDatabase`; after each change
 `TaskStore` writes only the rows that changed, in one transaction (WAL mode, so other processes can
 read while the app writes). On first launch after upgrading, the old `database.json` is imported
 and kept as `database.migrated.json`.
 
 To run on a device, Xcode needs to register the App Group for your team: in *Signing &
-Capabilities*, pick your team for the `ProductivityApp`, `ProductivityWidgets` and `ProductivityShare` targets; each
+Capabilities*, pick your team for the `Daybook`, `DaybookWidgets` and `DaybookShare` targets; each
 target's App Groups capability comes from its `.entitlements` file.
 
 ## Running the app
 
 1. Install XcodeGen once: `brew install xcodegen`
 2. From the repo root: `xcodegen`
-3. `open ProductivityApp.xcodeproj`, pick an iPhone simulator, then press Run.
+3. `open Daybook.xcodeproj`, pick an iPhone simulator, then press Run.
 
 The generated `.xcodeproj` is git-ignored; re-run `xcodegen` after adding or removing files.
 To run on a device, set your team under *Signing & Capabilities*.

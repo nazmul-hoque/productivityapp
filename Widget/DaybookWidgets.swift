@@ -2,7 +2,7 @@ import SwiftUI
 import WidgetKit
 
 @main
-struct ProductivityWidgets: WidgetBundle {
+struct DaybookWidgets: WidgetBundle {
     var body: some Widget {
         TodayWidget()
     }

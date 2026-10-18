@@ -15,10 +15,10 @@ secret="test-secret-that-is-at-least-32-characters-long"
 user_a=00000000-0000-0000-0000-00000000000a
 user_b=00000000-0000-0000-0000-00000000000b
 
-pg="productivity-e2e-pg-$$"
-rest="productivity-e2e-rest-$$"
+pg="daybook-e2e-pg-$$"
+rest="daybook-e2e-rest-$$"
 if [ "$native" = 1 ]; then
-    net="productivity-e2e-net-$$"
+    net="daybook-e2e-net-$$"
     docker network create "$net" >/dev/null
     network=(--network "$net")
     db_host="$pg"
@@ -40,7 +40,7 @@ psql -c "insert into auth.users (id) values ('$user_a'), ('$user_b')" >/dev/null
 
 docker run -d --rm --name "$rest" "${network[@]}" ${publish[@]+"${publish[@]}"} \
     -e PGRST_DB_URI="postgres://authenticator:authenticator@$db_host:5432/postgres" \
-    -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$secret" \
+    -e PGRST_DB_SCHEMAS=daybook -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$secret" \
     -e PGRST_SERVER_PORT=3000 postgrest/postgrest:v12.2.3 >/dev/null
 until curl -s -o /dev/null --noproxy localhost http://localhost:3000/; do sleep 0.5; done
 

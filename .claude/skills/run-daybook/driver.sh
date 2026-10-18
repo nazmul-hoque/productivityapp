@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build, launch and drive ProductivityApp in the iOS Simulator.
-# Run from the repo root: .claude/skills/run-productivityapp/driver.sh <command> [args]
+# Build, launch and drive Daybook in the iOS Simulator.
+# Run from the repo root: .claude/skills/run-daybook/driver.sh <command> [args]
 set -euo pipefail
 
-BUNDLE_ID=com.nazmulhoque.productivityapp
+BUNDLE_ID=com.nazmulhoque.daybook
 DEVICE_NAME=${DEVICE_NAME:-"iPhone 17 Pro"}
 DERIVED=.build/DerivedData
-APP=$DERIVED/Build/Products/Debug-iphonesimulator/ProductivityApp.app
+APP=$DERIVED/Build/Products/Debug-iphonesimulator/Daybook.app
 SHOTS=${SHOTS:-.build/screenshots}
 
 udid() {
@@ -35,7 +35,7 @@ case "$cmd" in
   build)
     need_udid
     xcodegen --quiet
-    xcodebuild -project ProductivityApp.xcodeproj -scheme ProductivityApp \
+    xcodebuild -project Daybook.xcodeproj -scheme Daybook \
       -destination "id=$UDID" -derivedDataPath "$DERIVED" build 2>&1 |
       grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
     [ -d "$APP" ]

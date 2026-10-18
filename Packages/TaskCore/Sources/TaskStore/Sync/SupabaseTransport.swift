@@ -10,11 +10,15 @@ public struct SupabaseConfig: Sendable, Equatable {
     public var anonKey: String
     /// The REST API's base, `<url>/rest/v1` on Supabase.
     public var restURL: URL
+    /// The Postgres schema holding the sync table and functions (see `supabase/migrations`). It
+    /// must be one of the project's exposed schemas.
+    public var schema: String
 
     /// - Parameter restURL: only for pointing at a bare PostgREST server in tests.
-    public init(url: URL, anonKey: String, restURL: URL? = nil) {
+    public init(url: URL, anonKey: String, schema: String = "daybook", restURL: URL? = nil) {
         self.url = url
         self.anonKey = anonKey
+        self.schema = schema
         self.restURL = restURL ?? url.appendingPathComponent("rest/v1")
     }
 }
@@ -76,6 +80,8 @@ public struct SupabaseTransport: SyncTransport {
         var request = URLRequest(url: config.restURL.appendingPathComponent("rpc/\(function)"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // PostgREST picks the schema of a POST from this header (Accept-Profile is for reads).
+        request.setValue(config.schema, forHTTPHeaderField: "Content-Profile")
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(try await accessToken())", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONEncoder().encode(body)

@@ -22,7 +22,7 @@ final class Clock: @unchecked Sendable {
 struct SupabaseAuthTests {
     static let host = "auth.test"
     let config = SupabaseConfig(url: URL(string: "https://\(host)")!, anonKey: "anon-key")
-    let redirect = URL(string: "productivity://auth-callback")!
+    let redirect = URL(string: "daybook://auth-callback")!
     let userID = UUID(uuidString: "0A0A0A0A-0000-0000-0000-000000000001")!
     let storage = MemoryStorage()
     let clock = Clock()
@@ -67,7 +67,7 @@ struct SupabaseAuthTests {
 
         let otp = try #require(StubProtocol.requests(on: Self.host).last)
         #expect(otp.request.url?.path == "/auth/v1/otp")
-        #expect(otp.request.url?.query == "redirect_to=productivity://auth-callback")
+        #expect(otp.request.url?.query == "redirect_to=daybook://auth-callback")
         #expect(otp.request.value(forHTTPHeaderField: "apikey") == "anon-key")
         let sent = try body(otp)
         #expect(sent["email"] as? String == "sam@example.com")
@@ -77,7 +77,7 @@ struct SupabaseAuthTests {
 
         // The email's link comes back to the app.
         respond(200, sessionJSON())
-        let callback = URL(string: "productivity://auth-callback?code=abc-123")!
+        let callback = URL(string: "daybook://auth-callback?code=abc-123")!
         #expect(auth.isCallback(callback, redirectTo: redirect))
         let session = try await auth.handleCallback(callback)
         #expect(session.userID == userID && session.email == "sam@example.com" && session.accessToken == "access-1")
@@ -97,11 +97,11 @@ struct SupabaseAuthTests {
     @Test func badCallbacks() async throws {
         let auth = makeAuth()
         // No verifier: the link was asked for on another device.
-        await #expect(throws: AuthError.invalidLink) { try await auth.handleCallback(URL(string: "productivity://auth-callback?code=x")!) }
+        await #expect(throws: AuthError.invalidLink) { try await auth.handleCallback(URL(string: "daybook://auth-callback?code=x")!) }
         // Supabase reports errors in the fragment.
-        let expired = URL(string: "productivity://auth-callback#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired")!
+        let expired = URL(string: "daybook://auth-callback#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired")!
         await #expect(throws: AuthError.rejected("Email link is invalid or has expired")) { try await auth.handleCallback(expired) }
-        #expect(!auth.isCallback(URL(string: "productivity://today")!, redirectTo: redirect))
+        #expect(!auth.isCallback(URL(string: "daybook://today")!, redirectTo: redirect))
     }
 
     @Test func signInWithTheCode() async throws {
