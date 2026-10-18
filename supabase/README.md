@@ -45,4 +45,6 @@ real users, set up custom SMTP under *Project Settings → Authentication*.
   `supabase/tests/sync_test.sql`: merging, idempotency, ordering, isolation between users, refused
   direct writes and anonymous calls.
 - `scripts/test-sync-e2e.sh` — the same database behind PostgREST (Supabase's REST layer), with
-  the Swift sync engine as two devices of one user and a second user.
+  the Swift sync engine as two devices of one user and a second user. On macOS the Swift tests run
+  natively; on Linux they run in a Swift image whose SQLite has the snapshot API (first argument,
+  default `swift-sqlite:6.0`).
