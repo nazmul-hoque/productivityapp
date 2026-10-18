@@ -55,8 +55,11 @@ struct QuickAddView: View {
     }
 
     private var destinationTitle: String {
+        if let id = context.headingID, let heading = store.db.headings[id] { return heading.title }
         if let id = context.projectID { return store.db.projects[id]?.title ?? "New To-Do" }
         if let id = context.areaID { return store.db.areas[id]?.title ?? "New To-Do" }
+        if let day = context.day { return DayLabel.short(day, today: store.today) }
+        if context.evening { return "This Evening" }
         return context.list?.title ?? SmartList.inbox.title
     }
 

@@ -8,9 +8,12 @@ struct UpcomingView: View {
         let groups = store.db.upcoming(today: store.today)
         List {
             ForEach(groups) { group in
+                // Upcoming is ordered by day, so a drop picks the day and the to-do joins its end.
+                let slot = DropSection(id: "upcoming-\(group.day)", context: QuickAddContext(list: .upcoming, day: group.day), order: nil)
                 Section {
                     ForEach(group.todos, id: \.self) { todo in
                         TodoRow(todo: todo, context: .upcoming, isPreview: isPreview(todo))
+                            .dropSlot(slot, row: todo.id)
                     }
                 } header: {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -22,6 +25,7 @@ struct UpcomingView: View {
                             .foregroundStyle(.secondary)
                     }
                     .textCase(nil)
+                    .dropSlot(slot, row: nil)
                 }
             }
         }

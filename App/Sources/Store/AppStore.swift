@@ -62,8 +62,9 @@ final class AppStore {
         let parsed = QuickAddParser(today: today).parse(text)
         guard !parsed.title.isEmpty else { return }
         perform {
-            _ = $0.add(parsed, defaultWhen: context.defaultWhen(today: today), projectID: context.projectID,
-                   headingID: context.headingID, areaID: context.areaID, today: today)
+            _ = $0.add(parsed, defaultWhen: context.defaultWhen(today: today), evening: context.evening,
+                       projectID: context.projectID, headingID: context.headingID, areaID: context.areaID,
+                       at: context.insertion, today: today)
         }
     }
 
@@ -117,8 +118,15 @@ struct QuickAddContext: Equatable {
     var projectID: UUID?
     var headingID: UUID?
     var areaID: UUID?
+    /// A day in Upcoming.
+    var day: LocalDay?
+    /// The This Evening section of Today.
+    var evening = false
+    /// Where to put it, when the add button was dropped between two to-dos.
+    var insertion: Insertion?
 
     func defaultWhen(today: LocalDay) -> When {
+        if let day { return .on(day) }
         switch list {
         case .today: return .on(today)
         case .anytime: return .anytime

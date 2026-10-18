@@ -414,10 +414,13 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
     // MARK: - Quick add
 
     /// Creates a to-do from parsed quick-add text, resolving `/name` to a project or area
-    /// and `#name` to tags (created if new). `defaultWhen` applies when the text gives none.
+    /// and `#name` to tags (created if new). `defaultWhen` (and `evening`) apply when the
+    /// text gives no start. With an `insertion`, the to-do goes between those neighbours,
+    /// unless the text moved it to another list, in which case it goes to the end there.
     @discardableResult
-    public mutating func add(_ parsed: QuickAddResult, defaultWhen: When = .inbox, projectID: UUID? = nil,
-                             headingID: UUID? = nil, areaID: UUID? = nil, today: LocalDay, now: Date = Date()) -> Todo {
+    public mutating func add(_ parsed: QuickAddResult, defaultWhen: When = .inbox, evening: Bool = false,
+                             projectID: UUID? = nil, headingID: UUID? = nil, areaID: UUID? = nil,
+                             at insertion: Insertion? = nil, today: LocalDay, now: Date = Date()) -> Todo {
         var projectID = projectID
         var areaID = areaID
         var headingID = headingID
@@ -436,9 +439,26 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
         if when == .inbox && (projectID != nil || areaID != nil) { when = .anytime }
         let tagIDs = Set(parsed.tags.map { tag(named: $0).id })
         let todo = Todo(title: parsed.title, areaID: projectID == nil ? areaID : nil, projectID: projectID,
-                        headingID: headingID, when: when, isEvening: parsed.isEvening, deadline: parsed.deadline,
-                        reminder: parsed.reminder, tagIDs: tagIDs, createdAt: now)
-        return add(todo, today: today)
+                        headingID: headingID, when: when, isEvening: parsed.isEvening || (parsed.when == nil && evening),
+                        deadline: parsed.deadline, reminder: parsed.reminder, tagIDs: tagIDs, createdAt: now)
+        let added = add(todo, today: today)
+        guard let insertion, let neighbour = (insertion.after ?? insertion.before).flatMap({ todos[$0] }),
+              isSibling(added, of: neighbour, inToday: insertion.inToday, today: today) else { return added }
+        reorder(added.id, after: insertion.after, before: insertion.before, inToday: insertion.inToday, now: now)
+        return todos[added.id]!
+    }
+
+    /// Whether two to-dos sit in the same section of a list, so one can be ordered next to the other.
+    private func isSibling(_ a: Todo, of b: Todo, inToday: Bool, today: LocalDay) -> Bool {
+        let classifier = classifier(today: today)
+        if inToday {
+            return classifier.isIn(.today, a) && classifier.isIn(.today, b)
+                && classifier.todaySection(for: a) == classifier.todaySection(for: b)
+        }
+        guard a.projectID == b.projectID, a.areaID == b.areaID, a.headingID == b.headingID else { return false }
+        // Projects and areas list their to-dos whatever their start; loose ones are split by list.
+        if a.projectID != nil || a.areaID != nil { return true }
+        return [SmartList.inbox, .anytime, .someday].allSatisfy { classifier.isIn($0, a) == classifier.isIn($0, b) }
     }
 
     // MARK: - Helpers
@@ -456,6 +476,20 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
         return todos.values
             .filter { $0.id != id && classifier.isIn(.today, $0) }
             .map { $0.todayOrder ?? $0.order }.max()
+    }
+}
+
+/// A spot between two to-dos in a list, for adding a new one there. `nil` means that end
+/// of the section; `inToday` orders by the Today order instead of the list order.
+public struct Insertion: Hashable, Sendable {
+    public var after: UUID?
+    public var before: UUID?
+    public var inToday: Bool
+
+    public init(after: UUID?, before: UUID?, inToday: Bool = false) {
+        self.after = after
+        self.before = before
+        self.inToday = inToday
     }
 }
 

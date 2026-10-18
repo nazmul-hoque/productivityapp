@@ -43,12 +43,16 @@ struct ProjectView: View {
             .listRowSeparator(.hidden)
 
             ForEach(sections) { section in
+                let slot = DropSection(id: "project-\(projectID)-\(section.heading?.id.uuidString ?? "top")",
+                                       context: QuickAddContext(projectID: projectID, headingID: section.heading?.id),
+                                       order: section.todos.map(\.id))
                 Section {
-                    ForEach(section.todos) { TodoRow(todo: $0, context: .project) }
+                    ForEach(section.todos) { TodoRow(todo: $0, context: .project).dropSlot(slot, row: $0.id) }
                         .onMove { store.move(in: section.todos, from: $0, to: $1) }
                 } header: {
                     if let heading = section.heading {
                         HeadingHeader(heading: heading)
+                            .dropSlot(slot, row: nil)
                     }
                 }
             }

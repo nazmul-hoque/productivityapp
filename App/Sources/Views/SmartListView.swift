@@ -10,8 +10,9 @@ struct SmartListView: View {
     var body: some View {
         let todos = store.db.todos(in: list, today: store.today)
         let moveAction: ((IndexSet, Int) -> Void)? = isReorderable ? { store.move(in: todos, from: $0, to: $1) } : nil
+        let slot = isReorderable ? DropSection(id: "list-\(list)", context: QuickAddContext(list: list), order: todos.map(\.id)) : nil
         List {
-            ForEach(todos) { TodoRow(todo: $0, context: rowContext) }
+            ForEach(todos) { TodoRow(todo: $0, context: rowContext).dropSlot(slot, row: $0.id) }
                 .onMove(perform: moveAction)
         }
         .listStyle(.plain)

@@ -58,9 +58,10 @@ Done:
   conditions; completing early; "just this one" vs "this and future" rescheduling
 - Local reminders (offline), drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
   convert to-do → project, Quick Find search, sample "Get to know the app" project
+- Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
+  Upcoming day) to add a to-do right there
 
 Next:
-- Draggable "+" button that inserts at a position (spec 6.1)
 - Reminder snooze actions; repeating projects
 - Move to SQLite (GRDB) to prepare for sync in Phase 2
 - Widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass

@@ -12,6 +12,10 @@ struct RootView: View {
     @State private var selection: Destination?
     @State private var showingQuickAdd = false
     @State private var showingSearch = false
+    @State private var targets = InsertionTargets()
+    @State private var dropTarget: DropTarget?
+    /// Set when the add button was dropped onto a list; otherwise quick add uses the current screen.
+    @State private var droppedContext: QuickAddContext?
 
     var body: some View {
         NavigationSplitView {
@@ -21,18 +25,47 @@ struct RootView: View {
                 detail
             }
         }
+        .environment(\.insertionTargets, targets)
+        .overlay { insertionLine }
         .overlay(alignment: .bottomTrailing) {
-            AddButton { showingQuickAdd = true }
-                .padding(.trailing, 20)
-                .padding(.bottom, 24)
+            AddButton {
+                showingQuickAdd = true
+            } onDrag: { point in
+                dropTarget = point.flatMap(targets.target(at:))
+            } onDrop: { point in
+                // Dropped away from any list: same as a tap.
+                droppedContext = targets.target(at: point)?.context
+                showingQuickAdd = true
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 24)
         }
-        .sheet(isPresented: $showingQuickAdd) {
-            QuickAddView(context: quickAddContext)
+        .sensoryFeedback(.selection, trigger: dropTarget?.context)
+        .sheet(isPresented: $showingQuickAdd, onDismiss: { droppedContext = nil }) {
+            QuickAddView(context: droppedContext ?? quickAddContext)
                 .presentationDetents([.medium])
         }
         .sheet(isPresented: $showingSearch) {
             SearchView(selection: $selection)
         }
+    }
+
+    /// Shows where a dragged add button would insert the new to-do.
+    private var insertionLine: some View {
+        GeometryReader { proxy in
+            if let target = dropTarget {
+                let origin = proxy.frame(in: .global).origin
+                HStack(spacing: 0) {
+                    Circle().stroke(Color.accentColor, lineWidth: 2).frame(width: 8, height: 8)
+                    Rectangle().fill(Color.accentColor).frame(height: 2)
+                }
+                .frame(width: target.maxX - target.minX - 16)
+                .position(x: (target.minX + target.maxX) / 2 - origin.x, y: target.y - origin.y)
+                .animation(.snappy(duration: 0.15), value: target.y)
+            }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder

@@ -28,7 +28,8 @@ struct AreaView: View {
                 }
             }
             Section {
-                ForEach(todos) { TodoRow(todo: $0, context: .project) }
+                let slot = DropSection(id: "area-\(areaID)", context: QuickAddContext(areaID: areaID), order: todos.map(\.id))
+                ForEach(todos) { TodoRow(todo: $0, context: .project).dropSlot(slot, row: $0.id) }
                     .onMove { store.move(in: todos, from: $0, to: $1) }
             }
         }

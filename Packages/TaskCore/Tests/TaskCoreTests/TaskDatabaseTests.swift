@@ -132,6 +132,47 @@ struct TaskDatabaseTests {
         #expect(c.when == .inbox && c.projectID == nil)
     }
 
+    @Test func quickAddInsertsBetweenNeighbours() {
+        var db = TaskDatabase()
+        let project = db.addProject(Project(title: "Move"))
+        let heading = db.addHeading("Packing", toProject: project.id)
+        let a = db.add(Todo(title: "a", projectID: project.id, headingID: heading.id, when: .anytime), today: today)
+        let b = db.add(Todo(title: "b", projectID: project.id, headingID: heading.id, when: .anytime), today: today)
+        let parser = QuickAddParser(today: today)
+
+        db.add(parser.parse("between"), projectID: project.id, headingID: heading.id,
+               at: Insertion(after: a.id, before: b.id), today: today)
+        db.add(parser.parse("first"), projectID: project.id, headingID: heading.id,
+               at: Insertion(after: nil, before: a.id), today: today)
+        #expect(db.sections(ofProject: project.id)[1].todos.map(\.title) == ["first", "a", "between", "b"])
+
+        // Text that sends it elsewhere wins; it goes to the end of its new home.
+        let other = db.addProject(Project(title: "Garden"))
+        let moved = db.add(parser.parse("Rake /garden"), projectID: project.id, headingID: heading.id,
+                           at: Insertion(after: a.id, before: b.id), today: today)
+        #expect(moved.projectID == other.id && moved.headingID == nil)
+    }
+
+    @Test func quickAddInsertsIntoTodayAndEvening() {
+        var db = TaskDatabase()
+        let a = db.add(Todo(title: "a", when: .on(today)), today: today)
+        let b = db.add(Todo(title: "b", when: .on(today)), today: today)
+        let night = db.add(Todo(title: "night", when: .on(today), isEvening: true), today: today)
+        let parser = QuickAddParser(today: today)
+
+        db.add(parser.parse("top"), defaultWhen: .on(today), at: Insertion(after: nil, before: a.id, inToday: true), today: today)
+        db.add(parser.parse("late"), defaultWhen: .on(today), evening: true,
+               at: Insertion(after: nil, before: night.id, inToday: true), today: today)
+        // Scheduled for tomorrow, so it can't sit between a and b.
+        let tomorrow = db.add(parser.parse("later tomorrow"), defaultWhen: .on(today),
+                              at: Insertion(after: a.id, before: b.id, inToday: true), today: today)
+
+        let sections = db.todaySections(today: today)
+        #expect(sections.today.map(\.title) == ["top", "a", "b"])
+        #expect(sections.evening.map(\.title) == ["late", "night"])
+        #expect(tomorrow.when == .on(day("2026-10-15")) && tomorrow.todayOrder == nil)
+    }
+
     @Test func trashAndPurge() {
         var db = TaskDatabase()
         let todo = db.add(Todo(title: "x"), today: today)
