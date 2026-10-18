@@ -23,11 +23,13 @@ targets:
     sources:
       - App/Sources
       - App/Resources
+      - Shared
     dependencies:
       - package: TaskCore
         product: TaskCore
       - package: TaskCore
         product: TaskStore
+      - target: ProductivityWidgets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp
@@ -44,3 +46,26 @@ targets:
         ENABLE_PREVIEWS: YES
         CODE_SIGN_ENTITLEMENTS: App/ProductivityApp.entitlements
 
+  ProductivityWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widget
+      - Shared
+    dependencies:
+      - package: TaskCore
+        product: TaskCore
+      - package: TaskCore
+        product: TaskStore
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: Productivity
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_ENTITLEMENTS: Widget/ProductivityWidgets.entitlements
+        SKIP_INSTALL: YES

@@ -8,12 +8,9 @@ import TaskStore
 /// extension can all open it. If the container is unavailable (e.g. a build without
 /// the entitlement), it falls back to the app's own Application Support folder.
 enum Persistence {
-    static let appGroup = "group.com.nazmulhoque.productivityapp"
-
     static var databaseURL: URL {
-        let folder = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
-            ?? applicationSupport
-        return folder.appendingPathComponent("Database", isDirectory: true).appendingPathComponent("tasks.sqlite")
+        SharedStore.databaseURL
+            ?? applicationSupport.appendingPathComponent("Database", isDirectory: true).appendingPathComponent("tasks.sqlite")
     }
 
     /// The JSON file used before SQLite.

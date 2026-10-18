@@ -106,6 +106,19 @@ struct SQLiteStoreTests {
         #expect(try reopened.load() == db)
     }
 
+    @Test func readOnlyStoreLoadsButCannotWrite() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathComponent("tasks.sqlite")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let db = sample()
+        try SQLiteStore(url: url).initialize(with: db)
+
+        let reader = try SQLiteStore(readingFrom: url)
+        #expect(try reader.load() == db)
+        #expect(throws: (any Error).self) { try reader.save(from: db, to: TaskDatabase()) }
+        #expect(throws: (any Error).self) { try SQLiteStore(readingFrom: url.deletingLastPathComponent().appendingPathComponent("missing.sqlite")) }
+    }
+
     @Test func childTagBeforeParentIsFine() throws {
         // Dictionary order is arbitrary, so a child tag can be written before its parent.
         var db = TaskDatabase()

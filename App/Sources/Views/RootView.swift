@@ -48,6 +48,9 @@ struct RootView: View {
         .sheet(isPresented: $showingSearch) {
             SearchView(selection: $selection)
         }
+        .onOpenURL { url in
+            if url == SharedStore.todayURL { selection = .list(.today) }
+        }
     }
 
     /// Shows where a dragged add button would insert the new to-do.

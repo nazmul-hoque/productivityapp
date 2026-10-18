@@ -3,6 +3,7 @@ import Observation
 import SwiftUI
 import TaskCore
 import TaskStore
+import WidgetKit
 
 /// The app's single source of state. Wraps the pure `TaskDatabase`, persists it after
 /// each change, and keeps scheduled reminders in step.
@@ -68,6 +69,7 @@ final class AppStore {
             do {
                 try await storage.save(from: base, to: snapshot)
                 saved = snapshot
+                WidgetCenter.shared.reloadAllTimelines()
             } catch {
                 // `saved` still matches the file, so the next save writes these rows again.
                 print("Could not save: \(error)")

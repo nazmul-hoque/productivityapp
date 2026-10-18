@@ -21,6 +21,8 @@ App/Sources/         SwiftUI iOS app (iOS 17+)
   Views/             Sidebar, Today, Upcoming, Inbox/Anytime/Someday/Logbook/Trash, Project, Area,
                      to-do editor, quick add, Quick Find
   Components/        Rows, checkbox, progress ring, add button, theme
+Widget/              Today widget (WidgetKit extension; reads the shared database read-only)
+Shared/              Code compiled into both the app and the widget (App Group database location)
 project.yml          XcodeGen spec that generates the Xcode project
 ```
 
@@ -37,7 +39,8 @@ read while the app writes). On first launch after upgrading, the old `database.j
 and kept as `database.migrated.json`.
 
 To run on a device, Xcode needs to register the App Group for your team: in *Signing &
-Capabilities*, pick your team; the App Groups capability comes from `App/ProductivityApp.entitlements`.
+Capabilities*, pick your team for both the `ProductivityApp` and `ProductivityWidgets` targets; the App
+Groups capability comes from `App/ProductivityApp.entitlements` and `Widget/ProductivityWidgets.entitlements`.
 
 ## Running the app
 
@@ -73,9 +76,10 @@ Done:
 - Local reminders (offline), drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
   convert to-do → project, Quick Find search, sample "Get to know the app" project
 - SQLite storage (GRDB) in the App Group container, ready for widgets and sync
+- Today widget (small, medium, large): refreshes after every change and at midnight; tap to open Today
 - Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
   Upcoming day) to add a to-do right there
 
 Next:
 - Reminder snooze actions; repeating projects
-- Widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass
+- Interactive widget (check off to-dos), lock screen widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass

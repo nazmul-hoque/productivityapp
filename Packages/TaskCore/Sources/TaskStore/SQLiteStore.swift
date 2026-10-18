@@ -18,15 +18,23 @@ public final class SQLiteStore: Sendable {
         try Schema.migrator.migrate(writer)
     }
 
+    /// Opens an existing database file without migrating or writing to it, for widgets and
+    /// extensions that only show data. The app owns the schema; any write through this store throws.
+    public convenience init(readingFrom url: URL) throws {
+        var config = Self.configuration
+        config.readonly = true
+        try self.init(writer: DatabasePool(path: url.path, configuration: config), migrate: false)
+    }
+
     /// An in-memory database, for tests and previews.
     public convenience init() throws {
         try self.init(writer: DatabaseQueue(configuration: Self.configuration))
     }
 
     /// Wraps an open database and migrates it.
-    init(writer: any DatabaseWriter) throws {
+    init(writer: any DatabaseWriter, migrate: Bool = true) throws {
         self.writer = writer
-        try Schema.migrator.migrate(writer)
+        if migrate { try Schema.migrator.migrate(writer) }
     }
 
     private static var configuration: Configuration {
