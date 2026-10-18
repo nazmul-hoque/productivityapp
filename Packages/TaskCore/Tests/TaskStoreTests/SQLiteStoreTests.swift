@@ -4,6 +4,8 @@ import TaskCore
 import GRDB
 @testable import TaskStore
 
+// Serialized: `suspendAll()` affects every store in the process.
+@Suite(.serialized)
 struct SQLiteStoreTests {
     let today = LocalDay(iso: "2026-10-14")!
 
@@ -172,5 +174,22 @@ struct SQLiteStoreTests {
         let store = try SQLiteStore()
         try store.save(from: TaskDatabase(), to: restored)
         #expect(try store.load().tags[child.id]?.parentID == parent.id)
+    }
+
+    @Test func suspendedStoreRefusesWritesUntilResumed() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathComponent("tasks.sqlite")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = try SQLiteStore(url: url)
+        let db = sample()
+
+        SQLiteStore.suspendAll()
+        #expect(throws: (any Error).self) { try store.save(from: TaskDatabase(), to: db) }
+        SQLiteStore.resumeAll()
+
+        // The failed save changed nothing, so the same save works now.
+        #expect(try store.load() == TaskDatabase())
+        try store.save(from: TaskDatabase(), to: db)
+        #expect(try store.load() == db)
     }
 }

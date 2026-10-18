@@ -42,7 +42,23 @@ public final class SQLiteStore: Sendable {
         config.label = "TaskStore"
         // Another process (a widget) may hold a lock briefly.
         config.busyMode = .timeout(5)
+        // See `suspendAll()`.
+        config.observesSuspensionNotifications = true
         return config
+    }
+
+    /// Stops every store in this process from taking new database locks, until `resumeAll()`.
+    ///
+    /// iOS kills a suspended app that holds a lock on a file in a shared App Group container
+    /// (`0xdead10cc`). Call this once pending writes are done and the app is about to be
+    /// suspended. Meanwhile writes throw (`SQLITE_INTERRUPT` / `SQLITE_ABORT`); reads still work.
+    public static func suspendAll() {
+        NotificationCenter.default.post(name: Database.suspendNotification, object: nil)
+    }
+
+    /// Lets stores take locks again after `suspendAll()`.
+    public static func resumeAll() {
+        NotificationCenter.default.post(name: Database.resumeNotification, object: nil)
     }
 
     /// Whether the store has been given its first contents (see `initialize(with:)`). It stays

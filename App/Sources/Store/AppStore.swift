@@ -96,6 +96,9 @@ final class AppStore {
     /// Applies a button tapped on a reminder notification and saves before returning, since iOS
     /// may suspend the app again right after.
     func handle(_ action: ReminderAction, for id: UUID) async {
+        // iOS may have woken a suspended app just for this.
+        SQLiteStore.resumeAll()
+        defer { suspendDatabaseIfInBackground() }
         // The app may have been asleep while the widget changed things.
         await reloadFromDisk()
         switch action {
@@ -107,15 +110,32 @@ final class AppStore {
         await reminders.sync(with: db)
     }
 
-    /// Saves when the app goes to the background, asking iOS for time to finish first.
+    /// Saves when the app goes to the background, asking iOS for time to finish first, then
+    /// suspends the database so the suspended app holds no lock on the shared file.
     func saveBeforeSuspending() {
         guard backgroundTask == .invalid else { return }
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Save") { [weak self] in
+            // Out of time: give up on the write rather than be killed holding its lock.
+            SQLiteStore.suspendAll()
             self?.endBackgroundTask()
         }
         Task {
             await save()
+            suspendDatabaseIfInBackground()
             endBackgroundTask()
+        }
+    }
+
+    /// Called when the app comes to the foreground, before anything reads or writes.
+    func resumeDatabase() {
+        SQLiteStore.resumeAll()
+    }
+
+    /// Suspends the database unless the app is back in the foreground by now (it may return
+    /// while a background save is still running).
+    private func suspendDatabaseIfInBackground() {
+        if UIApplication.shared.applicationState == .background {
+            SQLiteStore.suspendAll()
         }
     }
 

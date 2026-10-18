@@ -16,6 +16,7 @@ struct ProductivityApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     switch phase {
                     case .active:
+                        store.resumeDatabase()
                         Task {
                             // The widget may have completed to-dos meanwhile.
                             await store.reloadFromDisk()
