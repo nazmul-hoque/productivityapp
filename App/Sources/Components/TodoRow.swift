@@ -76,20 +76,20 @@ struct TodoRow: View {
         .sensoryFeedback(.success, trigger: completions)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if todo.status == .open && !isPreview {
-                Button { store.schedule(todo.id, .on(store.today)) } label: { Label("Today", systemImage: "star.fill") }
+                Button { Haptics.selection(); store.schedule(todo.id, .on(store.today)) } label: { Label("Today", systemImage: "star.fill") }
                     .tint(SmartList.today.tint)
-                Button { store.schedule(todo.id, .on(store.today), evening: true) } label: { Label("Evening", systemImage: "moon.fill") }
+                Button { Haptics.selection(); store.schedule(todo.id, .on(store.today), evening: true) } label: { Label("Evening", systemImage: "moon.fill") }
                     .tint(Theme.evening)
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if context == .trash {
-                Button { store.restore(todo.id) } label: { Label("Restore", systemImage: "arrow.uturn.backward") }
+                Button { Haptics.selection(); store.restore(todo.id) } label: { Label("Restore", systemImage: "arrow.uturn.backward") }
                     .tint(.blue)
             } else if !isPreview {
-                Button(role: .destructive) { store.trash(todo.id) } label: { Label("Delete", systemImage: "trash") }
+                Button(role: .destructive) { Haptics.impact(); store.trash(todo.id) } label: { Label("Delete", systemImage: "trash") }
                 if todo.status == .open {
-                    Button { store.schedule(todo.id, .someday) } label: { Label("Someday", systemImage: "archivebox") }
+                    Button { Haptics.selection(); store.schedule(todo.id, .someday) } label: { Label("Someday", systemImage: "archivebox") }
                         .tint(SmartList.someday.tint)
                 }
             }

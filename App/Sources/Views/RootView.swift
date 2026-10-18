@@ -14,6 +14,7 @@ struct RootView: View {
     @State private var showingSearch = false
     /// Pass `-hasSeenOnboarding YES` as a launch argument to skip it (the run skill does).
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var targets = InsertionTargets()
     @State private var dropTarget: DropTarget?
     /// Set when the add button was dropped onto a list; otherwise quick add uses the current screen.
@@ -69,7 +70,7 @@ struct RootView: View {
                 }
                 .frame(width: target.maxX - target.minX - 16)
                 .position(x: (target.minX + target.maxX) / 2 - origin.x, y: target.y - origin.y)
-                .animation(.snappy(duration: 0.15), value: target.y)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.15), value: target.y)
             }
         }
         .ignoresSafeArea()
@@ -82,7 +83,7 @@ struct RootView: View {
         case .list(.today): TodayView()
         case .list(.upcoming): UpcomingView()
         case .list(let list): SmartListView(list: list)
-        case .project(let id): ProjectView(projectID: id)
+        case .project(let id): ProjectView(projectID: id, selection: $selection)
         case .area(let id): AreaView(areaID: id, selection: $selection)
         case nil:
             ContentUnavailableView("Pick a list", systemImage: "checklist", description: Text("Choose a list from the sidebar."))

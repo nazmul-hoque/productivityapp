@@ -8,6 +8,7 @@ struct CheckCircle: View {
     var action: () -> Void
     /// Grows with the text size.
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 20
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: action) {
@@ -26,8 +27,8 @@ struct CheckCircle: View {
                 }
             }
             .frame(width: side, height: side)
-            .scaleEffect(isChecked ? 1.0 : 0.95)
-            .animation(.spring(response: 0.3, dampingFraction: 0.55), value: isChecked)
+            .scaleEffect(isChecked || reduceMotion ? 1.0 : 0.95)
+            .animation(reduceMotion ? .easeInOut(duration: 0.15) : .spring(response: 0.3, dampingFraction: 0.55), value: isChecked)
             .contentShape(Rectangle().inset(by: -10))
         }
         .buttonStyle(.plain)

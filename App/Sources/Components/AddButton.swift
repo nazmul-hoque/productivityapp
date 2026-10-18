@@ -9,6 +9,7 @@ struct AddButton: View {
     /// Where the button was let go, in global coordinates.
     var onDrop: (CGPoint) -> Void = { _ in }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var taps = 0
     @State private var offset: CGSize = .zero
     @State private var isDragging = false
@@ -20,7 +21,7 @@ struct AddButton: View {
             .frame(width: 56, height: 56)
             .background(Circle().fill(Color.accentColor))
             .shadow(color: .black.opacity(isDragging ? 0.3 : 0.2), radius: isDragging ? 14 : 8, y: isDragging ? 8 : 4)
-            .scaleEffect(isDragging ? 1.12 : 1)
+            .scaleEffect(isDragging && !reduceMotion ? 1.12 : 1)
             .offset(offset)
             .contentShape(Circle())
             .gesture(drag)
@@ -37,7 +38,7 @@ struct AddButton: View {
         DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
                 if !isDragging && hypot(value.translation.width, value.translation.height) > 10 {
-                    withAnimation(.snappy(duration: 0.2)) { isDragging = true }
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { isDragging = true }
                 }
                 guard isDragging else { return }
                 offset = value.translation
@@ -50,7 +51,7 @@ struct AddButton: View {
                 } else {
                     tap()
                 }
-                withAnimation(.spring(duration: 0.35)) {
+                withAnimation(reduceMotion ? nil : .spring(duration: 0.35)) {
                     isDragging = false
                     offset = .zero
                 }

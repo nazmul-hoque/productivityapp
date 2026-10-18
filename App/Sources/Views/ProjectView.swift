@@ -4,6 +4,7 @@ import TaskCore
 struct ProjectView: View {
     @Environment(AppStore.self) private var store
     let projectID: UUID
+    @Binding var selection: Destination?
 
     @State private var showingEditor = false
     @State private var showingNewHeading = false
@@ -27,6 +28,11 @@ struct ProjectView: View {
                         Label("Deadline \(DayLabel.short(deadline, today: store.today))", systemImage: "flag.fill")
                             .font(.subheadline)
                             .foregroundStyle(deadline <= store.today ? Theme.deadline : Color.secondary)
+                    }
+                    if case .on(let day) = project.when, day > store.today {
+                        Label("Starts \(DayLabel.short(day, today: store.today))", systemImage: SmartList.upcoming.symbol)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                     if project.when == .someday {
                         Label("Someday", systemImage: SmartList.someday.symbol)
@@ -71,10 +77,14 @@ struct ProjectView: View {
                 Button { showingEditor = true } label: { Label("Edit Project", systemImage: "pencil") }
                 Button { newHeading = ""; showingNewHeading = true } label: { Label("Add Heading", systemImage: "text.badge.plus") }
                 Divider()
-                Button { store.perform { $0.completeProject(projectID) } } label: {
+                Button(action: complete) {
                     Label("Complete Project", systemImage: "checkmark.circle")
                 }
-                Button(role: .destructive) { store.perform { $0.trashProject(projectID) } } label: {
+                Button(role: .destructive) {
+                    Haptics.impact()
+                    selection = nil
+                    store.perform { $0.trashProject(projectID) }
+                } label: {
                     Label("Delete Project", systemImage: "trash")
                 }
             } label: {
@@ -90,6 +100,17 @@ struct ProjectView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+    }
+}
+
+extension ProjectView {
+    /// Completes the project and moves on: to the next instance of a repeating one, otherwise
+    /// back to the lists.
+    private func complete() {
+        var next: Project?
+        store.perform { next = $0.completeProject(projectID) }
+        Haptics.success()
+        selection = next.map { .project($0.id) }
     }
 }
 
