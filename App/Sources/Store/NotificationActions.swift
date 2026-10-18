@@ -26,7 +26,15 @@ enum ReminderAction: String, CaseIterable {
 /// app in the background just to handle one.
 @MainActor
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    let store = AppStore()
+    let store: AppStore
+    let sync: SyncController
+
+    override init() {
+        let store = AppStore()
+        self.store = store
+        sync = SyncController(store: store)
+        super.init()
+    }
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {

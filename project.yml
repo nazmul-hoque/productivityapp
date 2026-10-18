@@ -46,6 +46,13 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
         CODE_SIGN_ENTITLEMENTS: App/ProductivityApp.entitlements
+    info:
+      # Merged with the generated Info.plist. The URL scheme lets sign-in links in emails open the app.
+      path: App/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.nazmulhoque.productivityapp
+            CFBundleURLSchemes: [productivity]
 
   ProductivityWidgets:
     type: app-extension

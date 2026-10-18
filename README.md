@@ -107,9 +107,17 @@ Done:
 - Tests: simulated devices against an in-memory server, the SQL against real Postgres, and the two
   together through PostgREST (`scripts/test-supabase.sh`, `scripts/test-sync-e2e.sh`)
 
+- Sign in with email: a magic link (PKCE, so only the device that asked can use it) or the 6-digit
+  code from the same email; the session is kept in the Keychain and refreshed automatically
+- Sync from the app: on launch, on returning to the foreground, two seconds after edits, and from
+  *Account → Sync Now*; the sidebar's account button shows sync problems
+- Signing in on a device that already has to-dos when the account does too asks whether to merge
+  them or replace this device's with the account's
+
+To turn it on, set up a Supabase project (`supabase/README.md`) and fill in
+`App/Sources/Store/AppConfig.swift`. Without it the app works as before, with no account.
+
 Next:
-- Sign in (email magic link, Sign in with Apple, Google) and keeping the session in the Keychain
-- Running sync from the app: on launch, on returning to the foreground, shortly after edits, and in
-  background refresh; a sync status and account screen
-- First sign-in on a second device: choose between merging local data and replacing it
+- Sign in with Apple and Google
+- Background refresh, so a device that hasn't been opened in a while is current when it is
 - Import (Things, Todoist, TickTick, Google Tasks, Reminders) and export (JSON, CSV)

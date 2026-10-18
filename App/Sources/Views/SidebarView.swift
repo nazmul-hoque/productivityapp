@@ -5,6 +5,7 @@ struct SidebarView: View {
     @Environment(AppStore.self) private var store
     @Binding var selection: Destination?
     @Binding var showingSearch: Bool
+    @State private var showingAccount = false
 
     @State private var newListKind: NewListKind?
     @State private var newListName = ""
@@ -48,9 +49,13 @@ struct SidebarView: View {
             }
         }
         .navigationTitle("Lists")
+        .sheet(isPresented: $showingAccount) { AccountView() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showingSearch = true } label: { Label("Quick Find", systemImage: "magnifyingglass") }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingAccount = true } label: { AccountBadge() }
             }
             ToolbarItem(placement: .topBarLeading) {
                 Menu {

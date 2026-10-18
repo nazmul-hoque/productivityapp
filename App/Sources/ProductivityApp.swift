@@ -7,11 +7,13 @@ struct ProductivityApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     private var store: AppStore { appDelegate.store }
+    private var sync: SyncController { appDelegate.sync }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(store)
+                .environment(sync)
                 .task { await store.syncReminders() }
                 .onChange(of: scenePhase) { _, phase in
                     switch phase {
@@ -22,6 +24,7 @@ struct ProductivityApp: App {
                             await store.reloadFromDisk()
                             // Roll Today over at midnight and keep the trash tidy.
                             store.refresh()
+                            sync.syncSoon()
                         }
                     case .background:
                         // Don't wait for the save delay; the app may be suspended.

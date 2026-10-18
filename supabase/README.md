@@ -20,10 +20,23 @@ meeting point. The same merge rules are implemented in the app (`TaskStore/Sync/
    supabase link --project-ref <your-project-ref>
    supabase db push          # applies supabase/migrations
    ```
-3. *Authentication → Providers*: enable **Email** (magic links). Apple and Google come with the
-   sign-in work in the app.
-4. *Project Settings → API*: note the **Project URL** and the **anon public** key. These go in the
-   app's config. Never put the `service_role` key in the app.
+3. *Authentication → Providers*: make sure **Email** is enabled. Apple and Google come later.
+4. *Authentication → URL Configuration*: add `productivity://auth-callback` to **Redirect URLs**.
+   Sign-in links lead there, which opens the app.
+5. *Authentication → Emails → Templates*: in both **Confirm signup** (first sign-in) and **Magic
+   Link**, add the code next to the link, so people can sign in when they open the email on
+   another device. For example:
+   ```html
+   <h2>Sign in to Productivity</h2>
+   <p><a href="{{ .ConfirmationURL }}">Sign in</a></p>
+   <p>Or enter this code in the app: <strong>{{ .Token }}</strong></p>
+   ```
+6. *Project Settings → API*: copy the **Project URL** and the **anon public** key into
+   `App/Sources/Store/AppConfig.swift`. The anon key is meant to ship in apps; never put the
+   `service_role` key in the app.
+
+The default email sender is rate limited (a few emails an hour) and meant for testing. Before
+real users, set up custom SMTP under *Project Settings → Authentication*.
 
 ## Tests
 

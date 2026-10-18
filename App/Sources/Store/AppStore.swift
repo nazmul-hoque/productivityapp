@@ -22,6 +22,11 @@ final class AppStore {
     /// The write in progress. Writes run one at a time so `saved` always matches the file.
     @ObservationIgnored private var writing: Task<Void, Never>?
     @ObservationIgnored private var backgroundTask = UIBackgroundTaskIdentifier.invalid
+    /// Called after local changes reach the database, so sync can follow them.
+    @ObservationIgnored var onSaved: (() -> Void)?
+
+    /// The database file, for sync. `nil` if it could not be opened.
+    var database: SQLiteStore? { storage }
 
     init() {
         let today = LocalDay(Date())
@@ -70,6 +75,7 @@ final class AppStore {
                 try await storage.save(from: base, to: snapshot)
                 saved = snapshot
                 WidgetCenter.shared.reloadAllTimelines()
+                onSaved?()
             } catch {
                 // `saved` still matches the file, so the next save writes these rows again.
                 print("Could not save: \(error)")
@@ -90,6 +96,7 @@ final class AppStore {
         guard db == saved, disk != saved else { return }
         db = disk
         saved = disk
+        WidgetCenter.shared.reloadAllTimelines()
         await reminders.sync(with: db)
     }
 

@@ -9,6 +9,7 @@ enum Destination: Hashable {
 
 struct RootView: View {
     @Environment(AppStore.self) private var store
+    @Environment(SyncController.self) private var sync
     @State private var selection: Destination?
     @State private var showingQuickAdd = false
     @State private var showingSearch = false
@@ -62,7 +63,18 @@ struct RootView: View {
             OnboardingView()
         }
         .onOpenURL { url in
+            if sync.handle(url) { return }
             if url == SharedStore.todayURL { selection = .list(.today) }
+        }
+        // Stays up until a button is chosen; the buttons clear `pendingChoice`.
+        .confirmationDialog("This iPhone already has to-dos", isPresented: Binding(
+            get: { sync.pendingChoice != nil }, set: { _ in }
+        ), titleVisibility: .visible) {
+            Button("Merge Them") { sync.choose(merging: true) }
+            Button("Use the Account's To-Dos", role: .destructive) { sync.choose(merging: false) }
+            Button("Cancel", role: .cancel) { sync.cancelSignIn() }
+        } message: {
+            Text("Your account has to-dos too. Merge this iPhone's into the account, or replace them with the account's?")
         }
     }
 
