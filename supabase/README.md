@@ -33,9 +33,10 @@ name clashes. The app picks the schema with PostgREST's `Content-Profile` header
    Sign-in links lead there, which opens the app.
 5. *Authentication → Emails → Templates*: in both **Confirm signup** (first sign-in) and **Magic
    Link**, add the code next to the link, so people can sign in when they open the email on
-   another device. For example:
+   another device. If the project is shared, word them for every app (the link returns to whichever
+   app asked). For example:
    ```html
-   <h2>Sign in to Daybook</h2>
+   <h2>Your sign-in link</h2>
    <p><a href="{{ .ConfirmationURL }}">Sign in</a></p>
    <p>Or enter this code in the app: <strong>{{ .Token }}</strong></p>
    ```
@@ -67,6 +68,8 @@ The App Store requires apps with sign-up to let people delete their account in t
 records and their Supabase Auth user, ending their sessions everywhere. Because the project's users
 are shared, this also removes the sign-in for any other app on the project, along with anything that
 app stores against the user with `on delete cascade`. To-dos on the device stay there, unsynced.
+List those apps in `AppConfig.appsSharingAccounts` so the Delete Account screen names them in its
+warning.
 
 ## Tests
 
