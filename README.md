@@ -85,10 +85,11 @@ Done:
 - Share extension: share a page or text from any app to add it to the Inbox or Today (page title as the
   title, link in the notes)
 - Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
-  Upcoming day) to add a to-do right there
+  Upcoming day) to add a to-do right there; the list scrolls when you hold it near the top or bottom
+- Upcoming shows projects on their start day (or deadline) and previews of repeating ones
 - Polish: app icon (light, dark, tinted; `scripts/make_icon.swift`), first-launch onboarding, VoiceOver
   (rows read as one sentence with Complete as an action), Dynamic Type, haptics, Reduce Motion
 
-Still open in Phase 1:
-- Auto-scroll while dragging the + button near the top or bottom of a list
-- Previews of repeating projects in Upcoming (repeating to-dos already preview)
+Phase 1 is feature-complete. Known limits, for Phase 2:
+- Deletions remove rows outright; sync will need tombstones
+- If the app and the widget change the same to-do before the app saves, the app's version wins

@@ -25,6 +25,7 @@ struct DropTarget: Equatable {
 ///
 /// A plain class rather than observable state: rows update it on every scroll frame and
 /// nothing needs to re-render because of that. It is read when the add button moves.
+@MainActor
 final class InsertionTargets {
     private struct Key: Hashable {
         var section: String
@@ -39,6 +40,9 @@ final class InsertionTargets {
     }
 
     private var entries: [Key: Entry] = [:]
+
+    /// Scrolls the list under the dragged add button near its edges.
+    let autoScroller = AutoScroller()
 
     func set(_ frame: CGRect, section: DropSection, row: UUID?) {
         entries[Key(section: section.id, row: row)] = Entry(frame: frame, section: section, row: row)
@@ -124,5 +128,11 @@ private struct DropSlotModifier: ViewModifier {
                 if let new, let frame { targets?.set(frame, section: new, row: row) }
             }
             .onDisappear { if let section { targets?.remove(section: section.id, row: row) } }
+            // Lets the add button scroll this row's list while it is dragged near an edge.
+            .background {
+                if section != nil, let targets {
+                    EnclosingScrollViewReader { targets.autoScroller.register($0) }
+                }
+            }
     }
 }

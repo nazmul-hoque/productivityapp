@@ -29,12 +29,19 @@ struct RootView: View {
             }
         }
         .environment(\.insertionTargets, targets)
+        .onAppear {
+            // Rows move under a still finger while the list auto-scrolls; keep the line on them.
+            targets.autoScroller.onScroll = { [targets] point in
+                dropTarget = targets.target(at: point)
+            }
+        }
         .overlay { insertionLine }
         .overlay(alignment: .bottomTrailing) {
             AddButton {
                 showingQuickAdd = true
             } onDrag: { point in
                 dropTarget = point.flatMap(targets.target(at:))
+                targets.autoScroller.update(point)
             } onDrop: { point in
                 // Dropped away from any list: same as a tap.
                 droppedContext = targets.target(at: point)?.context
