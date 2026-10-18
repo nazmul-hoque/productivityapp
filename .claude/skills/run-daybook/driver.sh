@@ -105,8 +105,82 @@ case "$cmd" in
     need_udid
     xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
     ;;
+
+  # --- Recipes: system UI around the app (coordinates are for iPhone 17 Pro) ---
+
+  home)
+    need_udid
+    axe button home --udid "$UDID" >/dev/null; sleep 1
+    ;;
+  pid)  # the app's process id, empty if not running; unchanged across a resume, new after a relaunch
+    need_udid
+    xcrun simctl spawn "$UDID" launchctl list | awk -v id="$BUNDLE_ID" 'index($3, "UIKitApplication:" id "[") == 1 && $1 != "-" { print $1 }'
+    ;;
+  db)  # db "<sql>"  -> runs against the app's database in the App Group container
+    need_udid
+    db=""
+    for dir in ~/Library/Developer/CoreSimulator/Devices/"$UDID"/data/Containers/Shared/AppGroup/*/; do
+      id=$(plutil -extract MCMMetadataIdentifier raw "$dir/.com.apple.mobile_container_manager.metadata.plist" 2>/dev/null || true)
+      [ "$id" = "group.$BUNDLE_ID" ] && db="$dir/Database/tasks.sqlite"
+    done
+    [ -f "$db" ] || { echo "No database yet; launch the app once" >&2; exit 1; }
+    sqlite3 "$db" "$1"
+    ;;
+  widget-add)  # widget-add [small|medium|large]  -> adds the Today widget to the current Home Screen page
+    need_udid
+    pages=0; case "${1:-medium}" in small) pages=0 ;; medium) pages=1 ;; large) pages=2 ;; esac
+    "$0" home
+    axe touch -x 200 -y 520 --down --up --delay 1.5 --udid "$UDID" >/dev/null; sleep 1  # long-press empty space
+    axe tap --label Edit --element-type Button --wait-timeout 5 --udid "$UDID" >/dev/null; sleep 1
+    axe tap --label "Add Widget" --wait-timeout 5 --udid "$UDID" >/dev/null; sleep 2
+    axe tap -x 200 -y 172 --udid "$UDID" >/dev/null; sleep 1   # gallery search field
+    axe type Daybook --udid "$UDID" >/dev/null; sleep 1.5
+    axe tap -x 140 -y 253 --udid "$UDID" >/dev/null; sleep 2.5  # first search result
+    for _ in $(seq 1 "$pages"); do
+      axe swipe --start-x 330 --start-y 520 --end-x 70 --end-y 520 --udid "$UDID" >/dev/null; sleep 1
+    done
+    axe tap --label "Add Widget" --wait-timeout 5 --udid "$UDID" >/dev/null; sleep 2
+    axe tap --label Done --element-type Button --wait-timeout 5 --udid "$UDID" >/dev/null; sleep 3
+    ;;
+  notify)  # notify "<to-do title>" [Snooze 1 Hour|Tomorrow|Complete]  -> test reminder; with an action, taps it
+    need_udid
+    id=$("$0" db "select id from todo where title = '${1//\'/\'\'}' and status = 'open' limit 1;")
+    [ -n "$id" ] || { echo "No open to-do titled '$1'" >&2; exit 1; }
+    payload=$(mktemp)
+    jq -n --arg t "$1" --arg id "$id" '{aps: {alert: {title: $t}, category: "reminder", sound: "default"}, todoID: $id}' > "$payload"
+    xcrun simctl push "$UDID" "$BUNDLE_ID" "$payload" >/dev/null; rm -f "$payload"
+    if [ -n "${2:-}" ]; then
+      # The banner lasts a few seconds: long-press it at once to show the actions.
+      sleep 0.8
+      axe touch -x 200 -y 75 --down --up --delay 1.0 --udid "$UDID" >/dev/null; sleep 1.2
+      axe tap --label "$2" --element-type Button --wait-timeout 3 --udid "$UDID" >/dev/null
+      sleep 3  # the app handles the action in the background, then saves
+    fi
+    ;;
+  share-url)  # share-url <url>  -> opens it in Safari and shares it to Daybook; leaves the extension's form open
+    need_udid
+    xcrun simctl openurl "$UDID" "$1"; sleep 5
+    axe tap -x 343 -y 815 --udid "$UDID" >/dev/null; sleep 1.5   # Safari's "…" button
+    axe tap --label Share --element-type Button --wait-timeout 5 --udid "$UDID" >/dev/null; sleep 3
+    axe tap -x 245 -y 653 --udid "$UDID" >/dev/null; sleep 3     # Daybook, third in the app row
+    # The form runs in the extension's own process, so AXe can't see it; tap by position:
+    # Inbox (95,385), Today (95,437), Cancel (65,110), Add (354,110).
+    ;;
+  drag-path)  # drag-path <hold-seconds> x,y x,y ...  -> drag through the points, hold at the last, release
+    need_udid
+    hold=$1; shift
+    first=$1; shift
+    steps=(--step "touch -x ${first%,*} -y ${first#*,} --down")
+    last=$first
+    for point in "$@"; do  # a touch-down while already down moves the finger
+      steps+=(--step "touch -x ${point%,*} -y ${point#*,} --down"); last=$point
+    done
+    steps+=(--step "sleep $hold" --step "touch -x ${last%,*} -y ${last#*,} --up")
+    axe batch --udid "$UDID" "${steps[@]}" >/dev/null
+    ;;
   *)
     sed -n '2,3p' "$0"
-    echo "commands: setup | build | launch [--fresh] | allow | ui | tap <label> [Type] | tap <x> <y> | back | type <text> | ss [name] | smoke | stop"
+    echo "commands: setup | build | launch [--fresh] [--onboarding] | allow | ui | tap <label> [Type] | tap <x> <y> | back | type <text> | ss [name] | smoke | stop"
+    echo "recipes:  home | pid | db <sql> | widget-add [small|medium|large] | notify <title> [action] | share-url <url> | drag-path <hold> x,y ..."
     ;;
 esac

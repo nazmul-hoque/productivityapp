@@ -52,6 +52,36 @@ Useful labels on the Lists screen: `Inbox`, `Today`, `Upcoming`, `Anytime`, `Som
 `Trash`, `Get to know the app`, `Personal`, `Work`, `New To-Do` (blue +), `New List`, `Quick Find`.
 In the quick-add sheet: `Cancel`, `Add`.
 
+## Recipes: widgets, notifications, share sheet, gestures
+
+Everything outside the app's own screens. Coordinates are for iPhone 17 Pro.
+
+```bash
+$D home                                   # go to the Home Screen
+$D pid                                    # app's process id: same after a resume, new after a relaunch
+$D db "select title, status, start_date from todo where status = 'open';"   # the app's SQLite (App Group)
+$D widget-add medium                      # add the Today widget (small | medium | large) to the Home Screen
+$D notify "Plan the week" Tomorrow        # test reminder for that to-do, then tap its action
+                                          #   (Snooze 1 Hour | Tomorrow | Complete; omit to just show it)
+$D share-url https://www.swift.org        # share a page from Safari to Daybook; the form stays open:
+$D tap 95 437; $D tap 354 110             #   pick Today, then Add  (Inbox is 95,385; Cancel 65,110)
+$D drag-path 3 354,788 250,450 250,830    # drag + up the list, back to the bottom edge, hold 3 s, drop
+```
+
+- **Check results in the database, not only on screen.** `db` shows what a widget button, a
+  notification action or the share extension actually wrote.
+- **Resume vs. relaunch:** to test that the app picks up changes made elsewhere (widget, share
+  sheet), note `pid`, make the change, bring the app back by tapping its icon (`home`, then its
+  position on the Home Screen, or the "◀ Daybook" link in the status bar), and check `pid` again.
+  `launch` always relaunches.
+- **To look at the screen mid-gesture,** run `drag-path` in the background (`&`), `sleep`, then
+  `ss`. Each step of `drag-path` takes a few hundred milliseconds, so allow for it.
+- **Lock Screen widgets** aren't scripted (AXe's taps in the editor are unreliable). By hand:
+  `axe button lock` twice (lock, wake), long-press (200,400) for 1.5 s, tap *Customize*, then
+  *Add Widget* (the slot below the clock), scroll the list to *Daybook*, tap the circular and
+  rectangular previews, close, *Done*. The inline widget (above the clock) is offered there but
+  never got applied by automation; check it by hand.
+
 ## Run (human path)
 
 `xcodegen && open Daybook.xcodeproj`, pick an iPhone simulator, then press ⌘R.
@@ -59,7 +89,9 @@ In the quick-add sheet: `Cancel`, `Add`.
 ## Test
 
 ```bash
-swift test --package-path Packages/TaskCore   # 54 tests; this is also what CI runs (Linux, swift:6.0)
+swift test --package-path Packages/TaskCore   # all logic tests; CI runs them too
+scripts/test-supabase.sh                      # sync SQL against Postgres (needs Docker)
+scripts/test-sync-e2e.sh                      # devices -> PostgREST -> Postgres (needs Docker)
 ```
 
 Most logic changes (parsing, repeat rules, smart lists) land in TaskCore. Run the tests for those
@@ -79,6 +111,14 @@ and use the simulator only for UI changes.
   (`tap Add Button`) to disambiguate.
 - **`axe type` sends hardware-keyboard events.** The text goes in correctly, but the on-screen
   keyboard disappears in screenshots. That is expected.
+- **`notify` needs notification permission.** After `launch --fresh` the app hasn't asked yet, and
+  iOS silently drops the test reminder. Add a to-do with a time and run `allow` first (`smoke` does).
+- **The notification banner disappears after a few seconds.** `notify` long-presses it 0.8 s after
+  sending; a slower long-press lands on the Home Screen and starts icon editing (tap `Done`).
+- **AXe can't see inside the share extension** (its own process): tap its form by position.
+- **`ui` lists rows that have scrolled off screen.** To check scrolling, look at a screenshot.
+- **Auto-scroll while dragging + starts only after the finger has left both edge zones once**, so
+  a straight drag from the button to the bottom edge never scrolls. Go up first (see `drag-path`).
 - **The `.xcodeproj` is generated and git-ignored.** Don't edit it; change `project.yml`.
 - **Build output goes to `.build/`,** which is git-ignored, so it never collides with Xcode's own
   DerivedData.
