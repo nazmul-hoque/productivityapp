@@ -277,4 +277,27 @@ struct TaskDatabaseTests {
         let decoded = try JSONDecoder().decode(TaskDatabase.self, from: data)
         #expect(decoded == db)
     }
+
+    @Test func upcomingListsProjectsAndRepeatingProjectPreviews() {
+        var db = TaskDatabase()
+        let rule = RepeatRule(frequency: .weekly([.monday]), anchor: day("2026-10-19"), deadlineOffset: 4)
+        let review = db.addProject(Project(title: "Weekly review", when: .on(day("2026-10-19")),
+                                           repetition: Repetition(rule: rule, occurrence: day("2026-10-19"))))
+        db.addProject(Project(title: "Trip", when: .anytime, deadline: day("2026-10-21")))
+        db.addProject(Project(title: "Started", when: .on(today)))
+        let afterDone = RepeatRule(frequency: .daily, mode: .afterCompletion, anchor: today)
+        db.addProject(Project(title: "Habit", when: .on(today), repetition: Repetition(rule: afterDone, occurrence: today)))
+        let done = db.addProject(Project(title: "Done", when: .on(day("2026-10-20"))))
+        db.completeProject(done.id)
+
+        let groups = db.upcoming(today: today, horizon: 14)
+        #expect(groups.map(\.day) == [day("2026-10-19"), day("2026-10-21"), day("2026-10-26")])
+        #expect(groups.map { $0.projects.map(\.title) } == [["Weekly review"], ["Trip"], ["Weekly review"]])
+        #expect(groups.allSatisfy { $0.todos.isEmpty })
+
+        let preview = groups[2].projects[0]
+        #expect(preview.id == review.id && preview.when == .on(day("2026-10-26")))
+        #expect(preview.deadline == day("2026-10-30"))
+        #expect(preview.repetition?.index == 2)
+    }
 }

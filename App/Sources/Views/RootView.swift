@@ -81,7 +81,7 @@ struct RootView: View {
     private var detail: some View {
         switch selection {
         case .list(.today): TodayView()
-        case .list(.upcoming): UpcomingView()
+        case .list(.upcoming): UpcomingView(selection: $selection)
         case .list(let list): SmartListView(list: list)
         case .project(let id): ProjectView(projectID: id, selection: $selection)
         case .area(let id): AreaView(areaID: id, selection: $selection)

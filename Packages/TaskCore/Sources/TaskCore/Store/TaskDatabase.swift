@@ -63,29 +63,64 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
                 items.filter { classifier.todaySection(for: $0) == .evening })
     }
 
-    /// Upcoming grouped by day, ascending, including future occurrences of repeating
-    /// to-dos up to `horizon` days ahead.
+    /// Upcoming grouped by day, ascending: scheduled to-dos and projects, deadlines, and
+    /// previews of later occurrences of fixed-schedule repeating to-dos and projects up to
+    /// `horizon` days ahead. A preview is a copy with the occurrence's start day, not a real item.
     public func upcoming(today: LocalDay, horizon: Int = 60) -> [DayGroup] {
         let classifier = classifier(today: today)
-        var groups: [LocalDay: [Todo]] = [:]
-        for todo in todos(in: .upcoming, today: today) {
-            groups[classifier.upcomingDay(for: todo)!, default: []].append(todo)
-        }
-        // Preview later occurrences of open repeating to-dos (not yet real items).
         let end = today.adding(days: horizon)
+        var todoGroups: [LocalDay: [Todo]] = [:]
+        var projectGroups: [LocalDay: [Project]] = [:]
+
+        for todo in todos(in: .upcoming, today: today) {
+            todoGroups[classifier.upcomingDay(for: todo)!, default: []].append(todo)
+        }
         for todo in todos.values where todo.status == .open && !todo.isDeleted {
-            guard let repetition = todo.repetition, repetition.rule.mode == .fixed else { continue }
-            let from = max(repetition.occurrence, today).adding(days: 1)
-            guard from <= end else { continue }
-            for occurrence in RepeatEngine.occurrences(of: repetition.rule, in: from...end) {
+            guard let repetition = todo.repetition else { continue }
+            for day in Self.previewDays(of: repetition, today: today, through: end) {
                 var preview = todo
-                preview.when = .on(occurrence.day)
-                preview.repetition?.occurrence = occurrence.day
-                preview.repetition?.index = occurrence.index
-                groups[occurrence.day, default: []].append(preview)
+                preview.when = .on(day.day)
+                preview.repetition?.occurrence = day.day
+                preview.repetition?.index = day.index
+                todoGroups[day.day, default: []].append(preview)
             }
         }
-        return groups.keys.sorted().map { DayGroup(day: $0, todos: groups[$0]!) }
+
+        let openProjects = projects.values.filter { $0.status == .open && !$0.isDeleted }
+        for project in openProjects.sorted(by: Self.byOrder) {
+            if let day = Self.upcomingDay(of: project, today: today) {
+                projectGroups[day, default: []].append(project)
+            }
+            guard let repetition = project.repetition else { continue }
+            for day in Self.previewDays(of: repetition, today: today, through: end) {
+                var preview = project
+                preview.when = .on(day.day)
+                preview.deadline = repetition.rule.deadlineOffset.map { day.day.adding(days: $0) }
+                preview.repetition?.occurrence = day.day
+                preview.repetition?.index = day.index
+                projectGroups[day.day, default: []].append(preview)
+            }
+        }
+
+        let days = Set(todoGroups.keys).union(projectGroups.keys).sorted()
+        return days.map { DayGroup(day: $0, todos: todoGroups[$0] ?? [], projects: projectGroups[$0] ?? []) }
+    }
+
+    /// The day a project is listed under in Upcoming: its start day if later than today,
+    /// otherwise a deadline later than today.
+    static func upcomingDay(of project: Project, today: LocalDay) -> LocalDay? {
+        if case .on(let day) = project.when, day > today { return day }
+        if let deadline = project.deadline, deadline > today { return deadline }
+        return nil
+    }
+
+    /// Fixed-schedule occurrences after the current instance, within the horizon. Rules that
+    /// repeat after completion have no known future days.
+    static func previewDays(of repetition: Repetition, today: LocalDay, through end: LocalDay) -> [Occurrence] {
+        guard repetition.rule.mode == .fixed else { return [] }
+        let from = max(repetition.occurrence, today).adding(days: 1)
+        guard from <= end else { return [] }
+        return RepeatEngine.occurrences(of: repetition.rule, in: from...end)
     }
 
     public func project(_ id: UUID) -> Project? { projects[id] }
@@ -573,6 +608,8 @@ public struct Insertion: Hashable, Sendable {
 public struct DayGroup: Identifiable, Sendable {
     public var day: LocalDay
     public var todos: [Todo]
+    /// Projects starting (or due) this day, and previews of repeating ones.
+    public var projects: [Project] = []
     public var id: LocalDay { day }
 }
 
