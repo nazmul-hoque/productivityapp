@@ -16,6 +16,8 @@ Packages/TaskCore/   Swift package with all the app's logic, no UI (tested; also
   Store/             TaskDatabase: the data plus every operation on it, as a plain value
 Packages/TaskCore/Sources/TaskStore/
                      SQLite persistence (GRDB): schema, row mapping, diff-based saves
+  Sync/              Change tracking, field-level merge, sync engine, Supabase transport
+supabase/            Backend for sync: migrations, SQL tests (see supabase/README.md)
 App/Sources/         SwiftUI iOS app (iOS 17+)
   Store/             AppStore (@Observable wrapper), database location, local reminders, sample data
   Views/             Sidebar, Today, Upcoming, Inbox/Anytime/Someday/Logbook/Trash, Project, Area,
@@ -90,6 +92,24 @@ Done:
 - Polish: app icon (light, dark, tinted; `scripts/make_icon.swift`), first-launch onboarding, VoiceOver
   (rows read as one sentence with Complete as an action), Dynamic Type, haptics, Reduce Motion
 
-Phase 1 is feature-complete. Known limits, for Phase 2:
-- Deletions remove rows outright; sync will need tombstones
-- If the app and the widget change the same to-do before the app saves, the app's version wins
+Phase 1 is feature-complete.
+
+## Status: Phase 2 — sync and accounts
+
+Done:
+- Change tracking on the device: every write records a hybrid logical clock per changed field,
+  queues the row for upload and keeps tombstones for deletions (`TaskStore/Sync/SyncLog.swift`)
+- Merge: per-field last writer wins, so edits to different fields of one to-do on two devices both
+  survive; a deletion wins over edits; references to rows deleted elsewhere are repaired
+- Sync engine: push the outbox, pull everything newer, merge in one transaction; safe to retry
+- Supabase backend: table, row-level security and `sync_push` / `sync_pull` (`supabase/`), and the
+  REST transport for them
+- Tests: simulated devices against an in-memory server, the SQL against real Postgres, and the two
+  together through PostgREST (`scripts/test-supabase.sh`, `scripts/test-sync-e2e.sh`)
+
+Next:
+- Sign in (email magic link, Sign in with Apple, Google) and keeping the session in the Keychain
+- Running sync from the app: on launch, on returning to the foreground, shortly after edits, and in
+  background refresh; a sync status and account screen
+- First sign-in on a second device: choose between merging local data and replacing it
+- Import (Things, Todoist, TickTick, Google Tasks, Reminders) and export (JSON, CSV)

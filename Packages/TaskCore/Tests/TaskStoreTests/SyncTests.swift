@@ -38,7 +38,7 @@ final class Device: @unchecked Sendable {
     let engine: SyncEngine
     let today = LocalDay(iso: "2026-10-14")!
 
-    init(server: FakeServer, pageSize: Int = 500) throws {
+    init(server: any SyncTransport, pageSize: Int = 500) throws {
         store = try SQLiteStore()
         engine = SyncEngine(store: store, transport: server, pageSize: pageSize)
     }

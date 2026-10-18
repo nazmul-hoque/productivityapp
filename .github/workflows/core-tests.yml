@@ -12,3 +12,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run TaskCore and TaskStore tests
         run: swift test --package-path Packages/TaskCore
+
+  supabase-sql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the sync SQL tests against Postgres
+        run: scripts/test-supabase.sh
