@@ -132,6 +132,38 @@ struct TaskDatabaseTests {
         #expect(c.when == .inbox && c.projectID == nil)
     }
 
+    @Test func snoozeAnHour() {
+        var db = TaskDatabase()
+        let todo = db.add(Todo(title: "Call", when: .on(today), reminder: TimeOfDay(hour: 9)), today: today)
+        db.snooze(todo.id, .oneHour, now: today.date(at: TimeOfDay(hour: 9, minute: 2), timeZone: utc), timeZone: utc)
+        #expect(db.todos[todo.id]?.reminder == TimeOfDay(hour: 10, minute: 2))
+        #expect(db.todos[todo.id]?.when == .on(today))
+
+        // Late at night it rolls over to tomorrow, keeping This Evening.
+        let late = db.add(Todo(title: "Bins", when: .on(today), isEvening: true, reminder: TimeOfDay(hour: 23, minute: 30)), today: today)
+        db.snooze(late.id, .oneHour, now: today.date(at: TimeOfDay(hour: 23, minute: 30), timeZone: utc), timeZone: utc)
+        #expect(db.todos[late.id]?.when == .on(day("2026-10-15")))
+        #expect(db.todos[late.id]?.reminder == TimeOfDay(hour: 0, minute: 30))
+        #expect(db.todos[late.id]?.isEvening == true)
+    }
+
+    @Test func snoozeUntilTomorrowMovesOnlyThisRepeat() {
+        var db = TaskDatabase()
+        let rule = RepeatRule(frequency: .weekly([.wednesday]), anchor: today)
+        let todo = db.add(Todo(title: "Report", when: .on(today), reminder: TimeOfDay(hour: 8),
+                               repetition: Repetition(rule: rule, occurrence: today)), today: today)
+        db.snooze(todo.id, .tomorrow, now: now, timeZone: utc)
+        #expect(db.todos[todo.id]?.when == .on(day("2026-10-15")))
+        #expect(db.todos[todo.id]?.reminder == TimeOfDay(hour: 8))
+        #expect(db.todos[todo.id]?.repetition?.rule == rule)
+
+        // Completed to-dos are left alone.
+        db.complete(todo.id, now: now, timeZone: utc)
+        let before = db.todos[todo.id]
+        db.snooze(todo.id, .oneHour, now: now, timeZone: utc)
+        #expect(db.todos[todo.id] == before)
+    }
+
     @Test func quickAddInsertsBetweenNeighbours() {
         var db = TaskDatabase()
         let project = db.addProject(Project(title: "Move"))

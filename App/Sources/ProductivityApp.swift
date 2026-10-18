@@ -3,8 +3,10 @@ import TaskCore
 
 @main
 struct ProductivityApp: App {
-    @State private var store = AppStore()
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @Environment(\.scenePhase) private var scenePhase
+
+    private var store: AppStore { appDelegate.store }
 
     var body: some Scene {
         WindowGroup {

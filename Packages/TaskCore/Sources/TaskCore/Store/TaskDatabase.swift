@@ -255,6 +255,32 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
         schedule(id, .on(day), today: today, now: now)
     }
 
+    /// Pushes a to-do's reminder back, from a notification action. Its start day follows the
+    /// reminder, so a snooze past midnight moves it to the next day; for a repeating to-do only
+    /// this instance moves. "Tomorrow" keeps the reminder's time.
+    public mutating func snooze(_ id: UUID, _ snooze: Snooze, now: Date = Date(), timeZone: TimeZone = .current) {
+        guard let todo = todos[id], todo.status == .open else { return }
+        let today = LocalDay(now, timeZone: timeZone)
+        let day: LocalDay
+        let time: TimeOfDay
+        switch snooze {
+        case .oneHour:
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = timeZone
+            let fire = now.addingTimeInterval(60 * 60)
+            let c = calendar.dateComponents([.hour, .minute], from: fire)
+            day = LocalDay(fire, timeZone: timeZone)
+            time = TimeOfDay(hour: c.hour!, minute: c.minute!)
+        case .tomorrow:
+            day = today.adding(days: 1)
+            time = todo.reminder ?? TimeOfDay(hour: 9)
+        }
+        if todo.when != .on(day) {
+            schedule(id, .on(day), evening: todo.isEvening, today: today, now: now)
+        }
+        modify(id, now: now) { $0.reminder = time }
+    }
+
     /// Moves a to-do into a project (optionally under a heading), an area, or back to the
     /// inbox when both are `nil`. It goes to the end of its new container.
     public mutating func move(_ id: UUID, toProject projectID: UUID?, heading headingID: UUID? = nil, area areaID: UUID? = nil,
@@ -489,6 +515,11 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
             .filter { $0.id != id && classifier.isIn(.today, $0) }
             .map { $0.todayOrder ?? $0.order }.max()
     }
+}
+
+/// How far a reminder is pushed back from its notification.
+public enum Snooze: String, Sendable, CaseIterable {
+    case oneHour, tomorrow
 }
 
 /// A spot between two to-dos in a list, for adding a new one there. `nil` means that end

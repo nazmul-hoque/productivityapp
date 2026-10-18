@@ -93,6 +93,20 @@ final class AppStore {
         await reminders.sync(with: db)
     }
 
+    /// Applies a button tapped on a reminder notification and saves before returning, since iOS
+    /// may suspend the app again right after.
+    func handle(_ action: ReminderAction, for id: UUID) async {
+        // The app may have been asleep while the widget changed things.
+        await reloadFromDisk()
+        switch action {
+        case .snoozeHour: perform { $0.snooze(id, .oneHour) }
+        case .snoozeTomorrow: perform { $0.snooze(id, .tomorrow) }
+        case .complete: perform { _ = $0.complete(id) }
+        }
+        await save()
+        await reminders.sync(with: db)
+    }
+
     /// Saves when the app goes to the background, asking iOS for time to finish first.
     func saveBeforeSuspending() {
         guard backgroundTask == .invalid else { return }

@@ -73,7 +73,8 @@ Done:
 - Quick add with natural-language parsing and a live preview
 - Repeating to-dos: daily/weekly/monthly/yearly, intervals, fixed schedule or after completion, end
   conditions; completing early; "just this one" vs "this and future" rescheduling
-- Local reminders (offline), drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
+- Local reminders (offline) with Snooze 1 Hour / Tomorrow / Complete buttons on the notification,
+  drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
   convert to-do → project, Quick Find search, sample "Get to know the app" project
 - SQLite storage (GRDB) in the App Group container, ready for widgets and sync
 - Today widget (small, medium, large): check off to-dos right from it; refreshes after every change
@@ -82,5 +83,5 @@ Done:
   Upcoming day) to add a to-do right there
 
 Next:
-- Reminder snooze actions; repeating projects
+- Repeating projects
 - Lock screen widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass
