@@ -457,6 +457,14 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
         return heading
     }
 
+    /// Adds an existing heading (keeping its id) at the end of its project, for imports.
+    mutating func insert(_ heading: Heading) {
+        var heading = heading
+        let last = headings.values.filter { $0.projectID == heading.projectID }.map(\.order).max()
+        heading.order = FractionalIndex.between(last, nil)
+        headings[heading.id] = heading
+    }
+
     /// Deletes a heading; its to-dos move to the top of the project.
     public mutating func removeHeading(_ id: UUID, now: Date = Date()) {
         guard headings.removeValue(forKey: id) != nil else { return }
