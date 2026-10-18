@@ -6,9 +6,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    container: swift:6.0-noble
+    # macOS: GRDB needs SQLite's snapshot API, which Apple's SQLite has and Ubuntu's doesn't.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Run TaskCore tests
+      - name: Run TaskCore and TaskStore tests
         run: swift test --package-path Packages/TaskCore

@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import SwiftUI
 import TaskCore
+import TaskStore
 
 /// The app's single source of state. Wraps the pure `TaskDatabase`, persists it after
 /// each change, and keeps scheduled reminders in step.
@@ -11,19 +12,20 @@ final class AppStore {
     private(set) var db: TaskDatabase
     private(set) var today: LocalDay
 
-    @ObservationIgnored private let persistence: Persistence
+    /// `nil` if the database could not be opened; the app then runs without saving.
+    @ObservationIgnored private let storage: SQLiteStore?
+    /// What the database file currently holds, so a save writes only what changed since.
+    @ObservationIgnored private var saved: TaskDatabase
     @ObservationIgnored private let reminders = ReminderScheduler()
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
-    init(persistence: Persistence = Persistence()) {
+    init() {
         let today = LocalDay(Date())
-        self.persistence = persistence
+        let (storage, database) = Persistence.open(today: today)
+        self.storage = storage
         self.today = today
-        if let saved = persistence.load() {
-            db = saved
-        } else {
-            db = SampleData.database(today: today)
-        }
+        db = database
+        saved = database
     }
 
     /// Picks up a new day (Today/Upcoming are computed from `today`) and purges old trash.
@@ -49,8 +51,23 @@ final class AppStore {
         saveTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(300))
             guard let self, !Task.isCancelled else { return }
-            self.persistence.save(self.db)
+            await self.save()
             await self.reminders.sync(with: self.db)
+        }
+    }
+
+    /// Writes pending changes now (also called when the app goes to the background).
+    func save() async {
+        guard let storage, db != saved else { return }
+        let base = saved
+        let snapshot = db
+        saved = snapshot  // Claim it now so an overlapping save doesn't write the same rows.
+        do {
+            try await storage.save(from: base, to: snapshot)
+        } catch {
+            // Diff from the older snapshot next time; rewriting rows is harmless.
+            saved = base
+            print("Could not save: \(error)")
         }
     }
 

@@ -16,6 +16,18 @@ public struct TaskDatabase: Codable, Sendable, Equatable {
 
     public init() {}
 
+    /// Rebuilds a database from stored rows (e.g. loaded from SQLite).
+    public init(todos: [Todo], projects: [Project], headings: [Heading], areas: [Area], tags: [Tag]) {
+        func index<T: Identifiable>(_ items: [T]) -> [UUID: T] where T.ID == UUID {
+            Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+        }
+        self.todos = index(todos)
+        self.projects = index(projects)
+        self.headings = index(headings)
+        self.areas = index(areas)
+        self.tags = index(tags)
+    }
+
     public func classifier(today: LocalDay) -> ListClassifier {
         ListClassifier(today: today, projects: projects)
     }

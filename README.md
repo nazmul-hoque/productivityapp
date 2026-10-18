@@ -14,8 +14,10 @@ Packages/TaskCore/   Swift package with all the app's logic, no UI (tested; also
   Repeat/            RepeatRule + RepeatEngine (fixed / after completion, complete early, reschedule)
   Ordering/          FractionalIndex: sync-friendly ordering keys for drag-and-drop
   Store/             TaskDatabase: the data plus every operation on it, as a plain value
+Packages/TaskCore/Sources/TaskStore/
+                     SQLite persistence (GRDB): schema, row mapping, diff-based saves
 App/Sources/         SwiftUI iOS app (iOS 17+)
-  Store/             AppStore (@Observable wrapper), JSON persistence, local reminders, sample data
+  Store/             AppStore (@Observable wrapper), database location, local reminders, sample data
   Views/             Sidebar, Today, Upcoming, Inbox/Anytime/Someday/Logbook/Trash, Project, Area,
                      to-do editor, quick add, Quick Find
   Components/        Rows, checkbox, progress ring, add button, theme
@@ -24,6 +26,18 @@ project.yml          XcodeGen spec that generates the Xcode project
 
 All the rules live in `TaskCore` so they can be unit-tested without a simulator.
 The app layer only displays them.
+
+## Storage
+
+Data is stored on the device in SQLite, in the App Group container
+(`group.com.nazmulhoque.productivityapp`) at `Database/tasks.sqlite`, so widgets and the share
+extension can open the same file. The app works on an in-memory `TaskDatabase`; after each change
+`TaskStore` writes only the rows that changed, in one transaction (WAL mode, so other processes can
+read while the app writes). On first launch after upgrading, the old `database.json` is imported
+and kept as `database.migrated.json`.
+
+To run on a device, Xcode needs to register the App Group for your team: in *Signing &
+Capabilities*, pick your team; the App Groups capability comes from `App/ProductivityApp.entitlements`.
 
 ## Running the app
 
@@ -58,10 +72,10 @@ Done:
   conditions; completing early; "just this one" vs "this and future" rescheduling
 - Local reminders (offline), drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
   convert to-do → project, Quick Find search, sample "Get to know the app" project
+- SQLite storage (GRDB) in the App Group container, ready for widgets and sync
 - Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
   Upcoming day) to add a to-do right there
 
 Next:
 - Reminder snooze actions; repeating projects
-- Move to SQLite (GRDB) to prepare for sync in Phase 2
 - Widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass

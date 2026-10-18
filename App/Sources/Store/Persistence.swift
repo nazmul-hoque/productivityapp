@@ -1,43 +1,65 @@
 import Foundation
 import TaskCore
+import TaskStore
 
-/// Stores the database as a JSON file in Application Support.
+/// Where the database lives and how it is opened on launch.
 ///
-/// Interim storage for the offline-only phase; it will be replaced by SQLite plus the
-/// sync engine in Phase 2.
-struct Persistence {
-    var url: URL
+/// The SQLite file sits in the App Group container so the app, widgets and the share
+/// extension can all open it. If the container is unavailable (e.g. a build without
+/// the entitlement), it falls back to the app's own Application Support folder.
+enum Persistence {
+    static let appGroup = "group.com.nazmulhoque.productivityapp"
 
-    init(url: URL? = nil) {
-        if let url {
-            self.url = url
-        } else {
-            let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            self.url = folder.appendingPathComponent("database.json")
+    static var databaseURL: URL {
+        let folder = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
+            ?? applicationSupport
+        return folder.appendingPathComponent("Database", isDirectory: true).appendingPathComponent("tasks.sqlite")
+    }
+
+    /// The JSON file used before SQLite.
+    static var legacyJSONURL: URL {
+        applicationSupport.appendingPathComponent("database.json")
+    }
+
+    private static var applicationSupport: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }
+
+    /// Opens the store and loads its contents. A fresh store is filled from the old JSON
+    /// file if there is one, otherwise with the sample project.
+    static func open(today: LocalDay) -> (store: SQLiteStore?, database: TaskDatabase) {
+        do {
+            let store = try SQLiteStore(url: databaseURL)
+            if try store.isEmpty() {
+                let initial = importLegacyJSON() ?? SampleData.database(today: today)
+                try store.replaceAll(with: initial)
+                retireLegacyJSON()
+                return (store, initial)
+            }
+            return (store, try store.load())
+        } catch {
+            // Keep the app usable; changes this session won't be saved.
+            print("Could not open database at \(databaseURL.path): \(error)")
+            return (nil, importLegacyJSON() ?? SampleData.database(today: today))
         }
     }
 
-    func load() -> TaskDatabase? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    private static func importLegacyJSON() -> TaskDatabase? {
+        guard let data = try? Data(contentsOf: legacyJSONURL) else { return nil }
         do {
             return try JSONDecoder().decode(TaskDatabase.self, from: data)
         } catch {
-            // Keep the unreadable file for recovery rather than silently overwriting it.
-            let backup = url.deletingPathExtension().appendingPathExtension("corrupt-\(Int(Date().timeIntervalSince1970)).json")
-            try? FileManager.default.moveItem(at: url, to: backup)
-            print("Could not read database, moved to \(backup.lastPathComponent): \(error)")
+            print("Could not read \(legacyJSONURL.lastPathComponent): \(error)")
             return nil
         }
     }
 
-    func save(_ db: TaskDatabase) {
-        do {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.sortedKeys]
-            try encoder.encode(db).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        } catch {
-            print("Could not save database: \(error)")
-        }
+    /// Keeps the old file (renamed) rather than deleting it, in case it is needed for recovery.
+    private static func retireLegacyJSON() {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: legacyJSONURL.path) else { return }
+        let retired = legacyJSONURL.deletingPathExtension().appendingPathExtension("migrated.json")
+        try? fm.removeItem(at: retired)
+        try? fm.moveItem(at: legacyJSONURL, to: retired)
     }
 }
