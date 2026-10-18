@@ -28,12 +28,21 @@ enum ReminderAction: String, CaseIterable {
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     let store: AppStore
     let sync: SyncController
+    let spotlight = SpotlightIndex()
+    /// For App Intents, which run in the app's process but outside its views.
+    private(set) static var shared: AppDelegate?
 
     override init() {
         let store = AppStore()
         self.store = store
         sync = SyncController(store: store)
         super.init()
+        Self.shared = self
+        store.onDataChanged = { [weak self] in
+            guard let self else { return }
+            self.spotlight.update(with: self.store.db)
+        }
+        spotlight.update(with: store.db, after: .seconds(5))
     }
 
     func application(_ application: UIApplication,

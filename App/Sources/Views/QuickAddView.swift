@@ -7,9 +7,15 @@ struct QuickAddView: View {
     @Environment(\.dismiss) private var dismiss
     let context: QuickAddContext
 
-    @State private var text = ""
+    @State private var text: String
     @State private var added = 0
     @FocusState private var focused: Bool
+
+    /// - Parameter prefill: text to start with (from a `daybook://new` link).
+    init(context: QuickAddContext, prefill: String = "") {
+        self.context = context
+        _text = State(initialValue: prefill)
+    }
 
     var body: some View {
         let parsed = QuickAddParser(today: store.today).parse(text)

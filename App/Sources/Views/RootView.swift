@@ -13,6 +13,12 @@ struct RootView: View {
     @State private var selection: Destination?
     @State private var showingQuickAdd = false
     @State private var showingSearch = false
+    /// Text for quick add or Quick Find when a link opens them.
+    @State private var quickAddPrefill = ""
+    @State private var searchQuery = ""
+    /// A to-do opened from a link or Spotlight.
+    @State private var linkedTodo: Todo?
+    @State private var router = Router.shared
     /// Pass `-hasSeenOnboarding YES` as a launch argument to skip it (the run skill does).
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -52,20 +58,33 @@ struct RootView: View {
             .padding(.bottom, 24)
         }
         .sensoryFeedback(.selection, trigger: dropTarget?.context)
-        .sheet(isPresented: $showingQuickAdd, onDismiss: { droppedContext = nil }) {
-            QuickAddView(context: droppedContext ?? quickAddContext)
+        .sheet(isPresented: $showingQuickAdd, onDismiss: { droppedContext = nil; quickAddPrefill = "" }) {
+            QuickAddView(context: droppedContext ?? quickAddContext, prefill: quickAddPrefill)
                 .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showingSearch) {
-            SearchView(selection: $selection)
+        .sheet(isPresented: $showingSearch, onDismiss: { searchQuery = "" }) {
+            SearchView(selection: $selection, query: searchQuery)
         }
         .fullScreenCover(isPresented: Binding(get: { !hasSeenOnboarding }, set: { hasSeenOnboarding = !$0 })) {
             OnboardingView()
         }
         .onOpenURL { url in
             if sync.handle(url) { return }
-            if url == SharedStore.todayURL { selection = .list(.today) }
+            router.open(url)
         }
+        .onContinueUserActivity(SpotlightIndex.activityType) { activity in
+            if let id = SpotlightIndex.todoID(from: activity) { router.open(.todo(id)) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: PendingLink.notification)) { _ in
+            router.takePending()
+        }
+        .onAppear { router.takePending() }
+        .onChange(of: router.pending) { _, link in
+            guard let link else { return }
+            router.pending = nil
+            follow(link)
+        }
+        .sheet(item: $linkedTodo) { TodoEditorView(todo: $0) }
         // Stays up until a button is chosen; the buttons clear `pendingChoice`.
         .confirmationDialog("This iPhone already has to-dos", isPresented: Binding(
             get: { sync.pendingChoice != nil }, set: { _ in }
@@ -75,6 +94,35 @@ struct RootView: View {
             Button("Cancel", role: .cancel) { sync.cancelSignIn() }
         } message: {
             Text("Your account has to-dos too. Merge this iPhone's into the account, or replace them with the account's?")
+        }
+    }
+
+    /// Acts on a `daybook://` link (or an intent, control or Spotlight result routed as one).
+    private func follow(_ link: DaybookLink) {
+        // Close whatever is open first, so the link's screen shows.
+        showingQuickAdd = false
+        showingSearch = false
+        linkedTodo = nil
+        switch link {
+        case .show(let list):
+            selection = .list(list)
+        case .add(let title, let notes, let when):
+            var added: Todo?
+            let today = store.today
+            store.perform { added = $0.add(title: title, notes: notes, when: when, today: today) }
+            // Show the list it landed in.
+            if let added {
+                let lists = store.classifier.lists(for: added)
+                selection = .list([SmartList.today, .inbox, .upcoming, .anytime, .someday].first(where: lists.contains) ?? .inbox)
+            }
+        case .newTodo(let prefill):
+            quickAddPrefill = prefill ?? ""
+            Task { @MainActor in showingQuickAdd = true }
+        case .search(let query):
+            searchQuery = query
+            Task { @MainActor in showingSearch = true }
+        case .todo(let id):
+            if let todo = store.db.todos[id] { Task { @MainActor in linkedTodo = todo } }
         }
     }
 

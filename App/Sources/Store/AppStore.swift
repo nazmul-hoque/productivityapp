@@ -24,6 +24,9 @@ final class AppStore {
     @ObservationIgnored private var backgroundTask = UIBackgroundTaskIdentifier.invalid
     /// Called after local changes reach the database, so sync can follow them.
     @ObservationIgnored var onSaved: (() -> Void)?
+    /// Called whenever the data changed: after local saves and after reloading what sync or the
+    /// widget wrote. Spotlight follows it.
+    @ObservationIgnored var onDataChanged: (() -> Void)?
 
     /// The database file, for sync. `nil` if it could not be opened.
     var database: SQLiteStore? { storage }
@@ -76,6 +79,7 @@ final class AppStore {
                 saved = snapshot
                 WidgetCenter.shared.reloadAllTimelines()
                 onSaved?()
+                onDataChanged?()
             } catch {
                 // `saved` still matches the file, so the next save writes these rows again.
                 print("Could not save: \(error)")
@@ -97,6 +101,7 @@ final class AppStore {
         db = disk
         saved = disk
         WidgetCenter.shared.reloadAllTimelines()
+        onDataChanged?()
         await reminders.sync(with: db)
     }
 

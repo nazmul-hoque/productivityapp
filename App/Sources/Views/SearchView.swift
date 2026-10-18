@@ -6,7 +6,12 @@ struct SearchView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: Destination?
-    @State private var query = ""
+    @State private var query: String
+
+    init(selection: Binding<Destination?>, query: String = "") {
+        _selection = selection
+        _query = State(initialValue: query)
+    }
 
     var body: some View {
         NavigationStack {

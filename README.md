@@ -15,6 +15,7 @@ Packages/TaskCore/   Swift package with all the app's logic, no UI (tested; also
   Ordering/          FractionalIndex: sync-friendly ordering keys for drag-and-drop
   Store/             TaskDatabase: the data plus every operation on it, as a plain value
   Exchange/          Export (JSON backup, CSV) and import (Daybook, Todoist, TickTick, Google Tasks, Reminders)
+  Links/             daybook:// links for automation
 Packages/TaskCore/Sources/TaskStore/
                      SQLite persistence (GRDB): schema, row mapping, diff-based saves
   Sync/              Change tracking, field-level merge, sync engine, Supabase transport
@@ -24,6 +25,7 @@ App/Sources/         SwiftUI iOS app (iOS 17+)
   Views/             Sidebar, Today, Upcoming, Inbox/Anytime/Someday/Logbook/Trash, Project, Area,
                      to-do editor, quick add, Quick Find
   Components/        Rows, checkbox, progress ring, add button, theme
+  Intents/           Siri and Shortcuts actions (App Intents)
 Widget/              Today widget (WidgetKit extension; reads the shared database read-only)
 Share/               Share extension: save a link or text from any app as a to-do
 Shared/              Code compiled into both the app and the widget (App Group database location)
@@ -129,3 +131,24 @@ To turn it on, set up a Supabase project (`supabase/README.md`) and fill in
   importing the same backup twice adds nothing. Things doesn't export its data, so it isn't supported
 
 Phase 2 is complete. Later: Sign in with Apple and Google (needs the paid Apple Developer Program).
+
+## Status: Phase 3 — platform integration
+
+The spec's polish items (widgets, share extension, haptics, accessibility, onboarding) were done in
+Phase 1; Phase 3 adds the rest of the iOS integration:
+
+- **Siri and Shortcuts** (`App/Sources/Intents`): *Add To-Do* (the title reads like quick add, so
+  "Call Sam tomorrow at 5pm #phone" works; optional notes and list), *Complete To-Do*, *Get Today's
+  To-Dos* and *Show List*. Phrases that work without setup: "Add a to-do in Daybook", "What's on my
+  Daybook today", "Show Inbox in Daybook", "Complete a to-do in Daybook".
+- **Control Center, Lock Screen and Action button** (iOS 18): a *New To-Do* control that opens quick add.
+- **Spotlight**: open to-dos are searchable (on this device only); a result opens the to-do.
+- **Links** for automation, also used by the widget and Siri (`TaskCore/Links/DaybookLink.swift`):
+
+  | Link | Does |
+  |---|---|
+  | `daybook://today` (or `inbox`, `upcoming`, `anytime`, `someday`, `logbook`, `trash`) | shows that list |
+  | `daybook://add?title=…&notes=…&when=evening` | adds a to-do without asking; `when` is `inbox`, `today`, `evening`, `tomorrow`, `anytime` or `someday`, used if the title has no date |
+  | `daybook://new?title=…` | opens quick add, optionally filled in |
+  | `daybook://search?query=…` | opens Quick Find |
+  | `daybook://todo/<id>` | opens a to-do |
