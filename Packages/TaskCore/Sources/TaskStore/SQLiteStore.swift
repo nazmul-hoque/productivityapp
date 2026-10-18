@@ -65,6 +65,20 @@ public final class SQLiteStore: Sendable {
         try writer.read(Rows.loadAll)
     }
 
+    /// Loads, changes and saves in one transaction, for writers other than the app (a widget
+    /// button, the share extension). Another process can't write in between, so its changes
+    /// aren't lost. Returns the database as saved.
+    @discardableResult
+    public func update(_ change: (inout TaskDatabase) -> Void) throws -> TaskDatabase {
+        try writer.write { db in
+            let before = try Rows.loadAll(db)
+            var after = before
+            change(&after)
+            try Self.write(Changes(from: before, to: after), in: db)
+            return after
+        }
+    }
+
     /// Writes every row of `database`, replacing whatever is stored.
     public func replaceAll(with database: TaskDatabase) throws {
         try writer.write { db in try Self.replaceAll(with: database, in: db) }

@@ -119,6 +119,42 @@ struct SQLiteStoreTests {
         #expect(throws: (any Error).self) { try SQLiteStore(readingFrom: url.deletingLastPathComponent().appendingPathComponent("missing.sqlite")) }
     }
 
+    @Test func appAndWidgetWritesBothSurvive() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathComponent("tasks.sqlite")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var base = TaskDatabase()
+        let call = base.add(Todo(title: "Call", when: .on(today)), today: today)
+        let write = base.add(Todo(title: "Write", when: .on(today)), today: today)
+        let app = try SQLiteStore(url: url)
+        try app.initialize(with: base)
+
+        // The widget completes one to-do while the app edits another in memory.
+        let widget = try SQLiteStore(url: url)
+        try widget.update { _ = $0.complete(call.id) }
+        var edited = base
+        edited.modify(write.id) { $0.title = "Write report" }
+
+        // The app saves only what it changed, from its stale snapshot, then reloads.
+        try app.save(from: base, to: edited)
+        let merged = try app.load()
+        #expect(merged.todos[call.id]?.status == .completed)
+        #expect(merged.todos[write.id]?.title == "Write report")
+    }
+
+    @Test func updateCompletesARepeatingTodoAndAddsTheNext() throws {
+        let store = try SQLiteStore()
+        var db = TaskDatabase()
+        let rule = RepeatRule(frequency: .daily, anchor: today)
+        let todo = db.add(Todo(title: "Stretch", when: .on(today), repetition: Repetition(rule: rule, occurrence: today)), today: today)
+        try store.initialize(with: db)
+
+        let saved = try store.update { _ = $0.complete(todo.id) }
+        #expect(try store.load() == saved)
+        #expect(saved.todos[todo.id]?.status == .completed)
+        #expect(saved.todos.values.filter { $0.status == .open && $0.title == "Stretch" }.count == 1)
+    }
+
     @Test func childTagBeforeParentIsFine() throws {
         // Dictionary order is arbitrary, so a child tag can be written before its parent.
         var db = TaskDatabase()

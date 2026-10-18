@@ -80,6 +80,19 @@ final class AppStore {
         writing = nil
     }
 
+    /// Picks up what other processes (the widget) wrote while the app was away. Pending edits are
+    /// saved first; a save writes only the rows the app changed, so theirs survive.
+    func reloadFromDisk() async {
+        guard let storage else { return }
+        await save()
+        guard let disk = try? await Task.detached(operation: { try storage.load() }).value else { return }
+        // An edit made while loading isn't on disk yet; leave it and reload next time.
+        guard db == saved, disk != saved else { return }
+        db = disk
+        saved = disk
+        await reminders.sync(with: db)
+    }
+
     /// Saves when the app goes to the background, asking iOS for time to finish first.
     func saveBeforeSuspending() {
         guard backgroundTask == .invalid else { return }

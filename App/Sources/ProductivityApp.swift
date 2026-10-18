@@ -14,8 +14,12 @@ struct ProductivityApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     switch phase {
                     case .active:
-                        // Roll Today over at midnight and keep the trash tidy.
-                        store.refresh()
+                        Task {
+                            // The widget may have completed to-dos meanwhile.
+                            await store.reloadFromDisk()
+                            // Roll Today over at midnight and keep the trash tidy.
+                            store.refresh()
+                        }
                     case .background:
                         // Don't wait for the save delay; the app may be suspended.
                         store.saveBeforeSuspending()

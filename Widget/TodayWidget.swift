@@ -3,7 +3,8 @@ import TaskCore
 import TaskStore
 import WidgetKit
 
-/// Today's to-dos, read from the shared database. Tapping it opens Today in the app.
+/// Today's to-dos, read from the shared database. Tap a circle to complete a to-do; tap
+/// anywhere else to open Today in the app.
 struct TodayWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "Today", provider: TodayProvider()) { entry in
@@ -141,9 +142,15 @@ struct TodayWidgetView: View {
 
     private func row(_ item: TodayEntry.Item, evening: Bool = false) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: evening ? "moon" : "circle")
-                .font(.caption)
-                .foregroundStyle(evening ? Color.indigo : Color.secondary)
+            Button(intent: CompleteTodoIntent(todoID: item.id)) {
+                Image(systemName: evening ? "moon" : "circle")
+                    .font(.caption)
+                    .foregroundStyle(evening ? Color.indigo : Color.secondary)
+                    .frame(width: 18, height: 18)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Complete \(item.title)")
             Text(item.title)
                 .font(family == .systemSmall ? .caption : .subheadline)
                 .lineLimit(1)

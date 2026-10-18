@@ -76,10 +76,11 @@ Done:
 - Local reminders (offline), drag-to-reorder (Today has its own order), swipe to Today/Evening/Someday,
   convert to-do → project, Quick Find search, sample "Get to know the app" project
 - SQLite storage (GRDB) in the App Group container, ready for widgets and sync
-- Today widget (small, medium, large): refreshes after every change and at midnight; tap to open Today
+- Today widget (small, medium, large): check off to-dos right from it; refreshes after every change
+  and at midnight; tap to open Today. The app picks up the widget's changes when it comes to the foreground
 - Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
   Upcoming day) to add a to-do right there
 
 Next:
 - Reminder snooze actions; repeating projects
-- Interactive widget (check off to-dos), lock screen widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass
+- Lock screen widgets, share extension, onboarding screens, haptics/motion polish, accessibility pass
