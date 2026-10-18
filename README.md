@@ -22,6 +22,7 @@ App/Sources/         SwiftUI iOS app (iOS 17+)
                      to-do editor, quick add, Quick Find
   Components/        Rows, checkbox, progress ring, add button, theme
 Widget/              Today widget (WidgetKit extension; reads the shared database read-only)
+Share/               Share extension: save a link or text from any app as a to-do
 Shared/              Code compiled into both the app and the widget (App Group database location)
 project.yml          XcodeGen spec that generates the Xcode project
 ```
@@ -39,8 +40,8 @@ read while the app writes). On first launch after upgrading, the old `database.j
 and kept as `database.migrated.json`.
 
 To run on a device, Xcode needs to register the App Group for your team: in *Signing &
-Capabilities*, pick your team for both the `ProductivityApp` and `ProductivityWidgets` targets; the App
-Groups capability comes from `App/ProductivityApp.entitlements` and `Widget/ProductivityWidgets.entitlements`.
+Capabilities*, pick your team for the `ProductivityApp`, `ProductivityWidgets` and `ProductivityShare` targets; each
+target's App Groups capability comes from its `.entitlements` file.
 
 ## Running the app
 
@@ -81,8 +82,10 @@ Done:
 - Today widget (small, medium, large): check off to-dos right from it; refreshes after every change
   and at midnight; tap to open Today. The app picks up the widget's changes when it comes to the foreground.
   On the Lock Screen: circular (count), rectangular (count and first to-dos) and inline
+- Share extension: share a page or text from any app to add it to the Inbox or Today (page title as the
+  title, link in the notes)
 - Draggable "+" button: drop it between to-dos (or on a heading, the This Evening section or an
   Upcoming day) to add a to-do right there
 
 Next:
-- Share extension, onboarding screens, haptics/motion polish, accessibility pass
+- Onboarding screens, haptics/motion polish, accessibility pass

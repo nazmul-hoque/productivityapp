@@ -30,6 +30,7 @@ targets:
       - package: TaskCore
         product: TaskStore
       - target: ProductivityWidgets
+      - target: ProductivityShare
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp
@@ -68,4 +69,33 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_ENTITLEMENTS: Widget/ProductivityWidgets.entitlements
+        SKIP_INSTALL: YES
+
+  ProductivityShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Share
+      - Shared
+    dependencies:
+      - package: TaskCore
+        product: TaskCore
+      - package: TaskCore
+        product: TaskStore
+    info:
+      path: Share/Info.plist
+      properties:
+        CFBundleDisplayName: Productivity
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nazmulhoque.productivityapp.share
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_ENTITLEMENTS: Share/ProductivityShare.entitlements
         SKIP_INSTALL: YES
